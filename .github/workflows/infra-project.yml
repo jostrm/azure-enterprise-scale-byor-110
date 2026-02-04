@@ -137,10 +137,10 @@ jobs:
       enableBing: ${{ vars.ENABLE_BING || 'false' }}
       enableBingCustomSearch: ${{ vars.ENABLE_BING_CUSTOM_SEARCH || 'false' }}
       enableAIFoundryHub: ${{ vars.ENABLE_AI_FOUNDRY_HUB || 'false' }}
-      addAIFoundryHub: ${{ vars.ADD_AIFOUNDRY_HUB || 'false' }}
-      enableAIFoundry: ${{ vars.ENABLE_AIFOUNDRY || 'true' }}
-      updateAIFoundry: ${{ vars.UPDATE_AIFOUNDRY || 'false' }}
-      addAIFoundry: ${{ vars.ADD_AIFOUNDRY || 'false' }}
+      addAIFoundryHub: ${{ vars.ADD_AI_FOUNDRY_HUB || 'false' }}
+      enableAIFoundry: ${{ vars.ENABLE_AI_FOUNDRY || 'true' }}
+      updateAIFoundry: ${{ vars.UPDATE_AI_FOUNDRY || 'false' }}
+      addAIFoundry: ${{ vars.ADD_AI_FOUNDRY || 'false' }}
       enableAFoundryCaphost: ${{ vars.ENABLE_AFOUNDRY_CAPHOST || 'true' }}
       foundryDeploymentType: ${{ vars.FOUNDRY_DEPLOYMENT_TYPE || '1' }}
       enableAIFactoryCreatedDefaultProjectForAIFv2: ${{ vars.ENABLE_AIFACTORY_CREATED_DEFAULT_PROJECT_FOR_AIFV2 || 'true' }}

@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       dev_test_prod: dev
-      dev_test_prod_sub_id: "${{ vars.DEV_SUBSCRIPTION_ID }}"
+      dev_test_prod_sub_id: "${{ vars.AZURE_SUBSCRIPTION_ID }}"
       network_env: "${{ vars.DEV_NETWORK_ENV || vars.NETWORK_ENV || 'dev' }}"
       cidr_range: "${{ vars.DEV_CIDR_RANGE }}"
       admin_location: "${{ vars.AIFACTORY_LOCATION }}"
@@ -302,7 +302,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       dev_test_prod: test
-      dev_test_prod_sub_id: "${{ vars.STAGE_SUBSCRIPTION_ID }}"
+      dev_test_prod_sub_id: "${{ vars.AZURE_SUBSCRIPTION_ID }}"
       network_env: "${{ vars.STAGE_NETWORK_ENV || vars.NETWORK_ENV || 'test' }}"
       cidr_range: "${{ vars.STAGE_CIDR_RANGE }}"
       admin_location: "${{ vars.AIFACTORY_LOCATION }}"
@@ -582,7 +582,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       dev_test_prod: prod
-      dev_test_prod_sub_id: "${{ vars.PROD_SUBSCRIPTION_ID }}"
+      dev_test_prod_sub_id: "${{ vars.AZURE_SUBSCRIPTION_ID }}"
       network_env: "${{ vars.PROD_NETWORK_ENV || vars.NETWORK_ENV || 'prod' }}"
       cidr_range: "${{ vars.PROD_CIDR_RANGE }}"
       admin_location: "${{ vars.AIFACTORY_LOCATION }}"
