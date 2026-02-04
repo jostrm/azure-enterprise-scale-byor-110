@@ -38,13 +38,6 @@ jobs:
       admin_bicep_kv_fw: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_NAME }}"
       admin_bicep_kv_fw_rg: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_RG }}"
       tenantId: "${{ secrets.TENANT_ID }}"
-      admin_bicep_input_keyvault_subscription: "${{ secrets.AIFACTORY_SEEDING_KEYVAULT_SUBSCRIPTION_ID }}"
-      admin_bicep_kv_fw: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_NAME }}"
-      admin_bicep_kv_fw_rg: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_RG }}"
-      # Required seeding Key Vault inputs (fail fast if missing)
-      admin_bicep_input_keyvault_subscription: "${{ secrets.AIFACTORY_SEEDING_KEYVAULT_SUBSCRIPTION_ID }}"
-      admin_bicep_kv_fw: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_NAME }}"
-      admin_bicep_kv_fw_rg: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_RG }}"
       technical_admins_bastion_IP_whitelist: "${{ secrets.PROJECT_MEMBERS_IP_ADDRESS }}"
       technical_admins_ad_object_id: "${{ secrets.PROJECT_MEMBERS }}"
       technical_admins_email: "${{ vars.PROJECT_MEMBERS_EMAILS }}"
