@@ -148,6 +148,9 @@ jobs:
           if (-not $net) { $net = '${{ vars.NETWORK_ENV }}' }
           if (-not $net) { $net = $envName }
           "network_env=$net" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          $tags = '${{ vars.TAGS }}'
+          if (-not $tags) { $tags = '{}' }
+          "tags=$tags" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: 01_az_bicep_common_rg
         shell: bash
