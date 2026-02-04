@@ -64,7 +64,6 @@ jobs:
       AIFACTORY_VERSION_MINOR: ${{ vars.AIFACTORY_VERSION_MINOR }}
       AIFACTORY_SALT: ${{ vars.AIFACTORY_SALT }}
       AIFACTORY_SALT_RANDOM: ${{ vars.AIFACTORY_SALT_RANDOM }}
-      aifactory_salt_random: ${{ vars.AIFACTORY_SALT_RANDOM }}
       deployment_random_value: ''
 
       # Project types are merged in ADO

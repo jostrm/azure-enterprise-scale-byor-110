@@ -19,7 +19,7 @@ on:
 jobs:
   common-dev:
     name: Dev Common
-    if: github.event.inputs.deploy_dev == 'true'
+    if: ${{ github.event.inputs.deploy_dev == 'true' }}
     environment: dev
     runs-on: ubuntu-latest
     env: &common_env
@@ -94,7 +94,6 @@ jobs:
       commonLakeNamePrefixMax8chars: "${{ vars.COMMON_LAKE_NAME_PREFIX_MAX8CHARS }}"
       lakeContainerName: "${{ vars.LAKE_CONTAINER_NAME }}"
       adminUsername: "${{ vars.ADMIN_USERNAME }}"
-      admin_commonResourceSuffix: "${{ vars.ADMIN_COMMON_RESOURCE_SUFFIX || '-001' }}"
     steps: &common_steps
       - name: Azure Login
         uses: azure/login@v2
@@ -295,7 +294,7 @@ jobs:
   common-stage:
     name: Stage Common
     needs: common-dev
-    if: github.event.inputs.deploy_stage == 'true' && needs.common-dev.result == 'success'
+    if: ${{ github.event.inputs.deploy_stage == 'true' && needs.common-dev.result == 'success' }}
     environment: stage
     runs-on: ubuntu-latest
     env:
@@ -313,12 +312,7 @@ jobs:
     needs:
       - common-dev
       - common-stage
-    if: |
-      github.event.inputs.deploy_prod == 'true' &&
-      (
-        (github.event.inputs.deploy_stage == 'true' && needs.common-stage.result == 'success') ||
-        (github.event.inputs.deploy_stage != 'true' && needs.common-dev.result == 'success')
-      )
+    if: ${{ github.event.inputs.deploy_prod == 'true' && ((github.event.inputs.deploy_stage == 'true' && needs.common-stage.result == 'success') || (github.event.inputs.deploy_stage != 'true' && needs.common-dev.result == 'success')) }}
     environment: prod
     runs-on: ubuntu-latest
     env:
