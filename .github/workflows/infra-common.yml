@@ -38,6 +38,13 @@ jobs:
       admin_bicep_kv_fw: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_NAME }}"
       admin_bicep_kv_fw_rg: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_RG }}"
       tenantId: "${{ secrets.TENANT_ID }}"
+      admin_bicep_input_keyvault_subscription: "${{ secrets.AIFACTORY_SEEDING_KEYVAULT_SUBSCRIPTION_ID }}"
+      admin_bicep_kv_fw: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_NAME }}"
+      admin_bicep_kv_fw_rg: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_RG }}"
+      # Required seeding Key Vault inputs (fail fast if missing)
+      admin_bicep_input_keyvault_subscription: "${{ secrets.AIFACTORY_SEEDING_KEYVAULT_SUBSCRIPTION_ID }}"
+      admin_bicep_kv_fw: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_NAME }}"
+      admin_bicep_kv_fw_rg: "${{ vars.AIFACTORY_SEEDING_KEYVAULT_RG }}"
       technical_admins_bastion_IP_whitelist: "${{ secrets.PROJECT_MEMBERS_IP_ADDRESS }}"
       technical_admins_ad_object_id: "${{ secrets.PROJECT_MEMBERS }}"
       technical_admins_email: "${{ vars.PROJECT_MEMBERS_EMAILS }}"
@@ -123,8 +130,9 @@ jobs:
           $placeholders = @('<todo>', '<todo_id>', 'TODO', 'todo', '-')
           $errors = @()
           foreach ($key in $required) {
-            $val = (Get-Item "Env:$key" -ErrorAction SilentlyContinue).Value
-            if (-not $val) { $errors += "$key is required"; continue }
+            $raw = (Get-Item "Env:$key" -ErrorAction SilentlyContinue).Value
+            $val = if ($null -ne $raw) { $raw.ToString().Trim() } else { '' }
+            if ([string]::IsNullOrWhiteSpace($val)) { $errors += "$key is required"; continue }
             if ($placeholders -contains $val) { $errors += "$key still has placeholder value '$val'" }
           }
           if ($Env:BYO_subnets -eq 'true') {
@@ -404,8 +412,9 @@ jobs:
           $placeholders = @('<todo>', '<todo_id>', 'TODO', 'todo', '-')
           $errors = @()
           foreach ($key in $required) {
-            $val = (Get-Item "Env:$key" -ErrorAction SilentlyContinue).Value
-            if (-not $val) { $errors += "$key is required"; continue }
+            $raw = (Get-Item "Env:$key" -ErrorAction SilentlyContinue).Value
+            $val = if ($null -ne $raw) { $raw.ToString().Trim() } else { '' }
+            if ([string]::IsNullOrWhiteSpace($val)) { $errors += "$key is required"; continue }
             if ($placeholders -contains $val) { $errors += "$key still has placeholder value '$val'" }
           }
           if ($Env:BYO_subnets -eq 'true') {
@@ -684,8 +693,9 @@ jobs:
           $placeholders = @('<todo>', '<todo_id>', 'TODO', 'todo', '-')
           $errors = @()
           foreach ($key in $required) {
-            $val = (Get-Item "Env:$key" -ErrorAction SilentlyContinue).Value
-            if (-not $val) { $errors += "$key is required"; continue }
+            $raw = (Get-Item "Env:$key" -ErrorAction SilentlyContinue).Value
+            $val = if ($null -ne $raw) { $raw.ToString().Trim() } else { '' }
+            if ([string]::IsNullOrWhiteSpace($val)) { $errors += "$key is required"; continue }
             if ($placeholders -contains $val) { $errors += "$key still has placeholder value '$val'" }
           }
           if ($Env:BYO_subnets -eq 'true') {
