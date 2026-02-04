@@ -1,4 +1,4 @@
-name: infra-aifactory-common
+name: infra-common
 
 on:
   workflow_dispatch:
