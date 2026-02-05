@@ -55,7 +55,7 @@ jobs:
       common_subnet_scoring_cidr: "${{ vars.COMMON_SUBNET_SCORING_CIDR }}"
       common_pbi_subnet_name: "${{ vars.COMMON_PBI_SUBNET_NAME }}"
       common_pbi_subnet_cidr: "${{ vars.COMMON_PBI_SUBNET_CIDR }}"
-      common_bastion_subnet_name: "${{ vars.COMMON_BASTION_SUBNET_NAME }}"
+      common_bastion_subnet_name: "AzureBastionSubnet"
       common_bastion_subnet_cidr: "${{ vars.COMMON_BASTION_SUBNET_CIDR }}"
       vnetResourceGroup_param: "${{ vars.VNET_RESOURCE_GROUP_PARAM || '' }}"
       vnetNameFull_param: "${{ vars.VNET_NAME_FULL_PARAM || '' }}"
@@ -225,7 +225,7 @@ jobs:
             --parameters common_subnet_scoring_cidr="${{ env.common_subnet_scoring_cidr }}" \
             --parameters common_pbi_subnet_name="${{ env.common_pbi_subnet_name }}" \
             --parameters common_pbi_subnet_cidr="${{ env.common_pbi_subnet_cidr }}" \
-            --parameters common_bastion_subnet_name="${{ env.common_bastion_subnet_name }}" \
+            --parameters common_bastion_subnet_name="AzureBastionSubnet" \
             --parameters common_bastion_subnet_cidr="${{ env.common_bastion_subnet_cidr }}" \
             --parameters env="${{ env.dev_test_prod }}" \
             --parameters network_env="${{ env.network_env }}" \
@@ -345,7 +345,7 @@ jobs:
       common_subnet_scoring_cidr: "${{ vars.COMMON_SUBNET_SCORING_CIDR }}"
       common_pbi_subnet_name: "${{ vars.COMMON_PBI_SUBNET_NAME }}"
       common_pbi_subnet_cidr: "${{ vars.COMMON_PBI_SUBNET_CIDR }}"
-      common_bastion_subnet_name: "${{ vars.COMMON_BASTION_SUBNET_NAME }}"
+      common_bastion_subnet_name: "AzureBastionSubnet"
       common_bastion_subnet_cidr: "${{ vars.COMMON_BASTION_SUBNET_CIDR }}"
       vnetResourceGroup_param: "${{ vars.VNET_RESOURCE_GROUP_PARAM || '' }}"
       vnetNameFull_param: "${{ vars.VNET_NAME_FULL_PARAM || '' }}"
@@ -512,7 +512,7 @@ jobs:
             --parameters common_subnet_scoring_cidr="${{ env.common_subnet_scoring_cidr }}" \
             --parameters common_pbi_subnet_name="${{ env.common_pbi_subnet_name }}" \
             --parameters common_pbi_subnet_cidr="${{ env.common_pbi_subnet_cidr }}" \
-            --parameters common_bastion_subnet_name="${{ env.common_bastion_subnet_name }}" \
+            --parameters common_bastion_subnet_name="AzureBastionSubnet" \ 
             --parameters common_bastion_subnet_cidr="${{ env.common_bastion_subnet_cidr }}" \
             --parameters env="${{ env.dev_test_prod }}" \
             --parameters network_env="${{ env.network_env }}" \
@@ -634,7 +634,7 @@ jobs:
       common_subnet_scoring_cidr: "${{ vars.COMMON_SUBNET_SCORING_CIDR }}"
       common_pbi_subnet_name: "${{ vars.COMMON_PBI_SUBNET_NAME }}"
       common_pbi_subnet_cidr: "${{ vars.COMMON_PBI_SUBNET_CIDR }}"
-      common_bastion_subnet_name: "${{ vars.COMMON_BASTION_SUBNET_NAME }}"
+      common_bastion_subnet_name: "AzureBastionSubnet"
       common_bastion_subnet_cidr: "${{ vars.COMMON_BASTION_SUBNET_CIDR }}"
       vnetResourceGroup_param: "${{ vars.VNET_RESOURCE_GROUP_PARAM || '' }}"
       vnetNameFull_param: "${{ vars.VNET_NAME_FULL_PARAM || '' }}"
@@ -801,7 +801,7 @@ jobs:
             --parameters common_subnet_scoring_cidr="${{ env.common_subnet_scoring_cidr }}" \
             --parameters common_pbi_subnet_name="${{ env.common_pbi_subnet_name }}" \
             --parameters common_pbi_subnet_cidr="${{ env.common_pbi_subnet_cidr }}" \
-            --parameters common_bastion_subnet_name="${{ env.common_bastion_subnet_name }}" \
+            --parameters common_bastion_subnet_name="AzureBastionSubnet" \
             --parameters common_bastion_subnet_cidr="${{ env.common_bastion_subnet_cidr }}" \
             --parameters env="${{ env.dev_test_prod }}" \
             --parameters network_env="${{ env.network_env }}" \
