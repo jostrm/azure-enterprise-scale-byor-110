@@ -391,7 +391,10 @@ done
 if [[ " ${selected_environments[*]} " == *" dev "* ]]; then
   create_or_update_variable "dev" "AZURE_LOCATION" "$AIFACTORY_LOCATION"
   create_or_update_variable "dev" "AZURE_SUBSCRIPTION_ID" "$DEV_SUBSCRIPTION_ID"
+  create_or_update_variable "dev" "CIDR_RANGE" "$DEV_CIDR_RANGE"
+  create_or_update_variable "dev" "DEV_CIDR_RANGE" "$DEV_CIDR_RANGE"
   create_or_update_variable "dev" "AIFACTORY_CIDR_XX" "$DEV_CIDR_RANGE"
+  create_or_update_variable "dev" "DEV_NETWORK_ENV" "$DEV_NETWORK_ENV"
   create_or_update_variable "dev" "NETWORK_ENV" "$DEV_NETWORK_ENV"
   if [[ "$overwrite_azure_credential" == "y" ]]; then
     create_or_update_secret "dev" "AZURE_CREDENTIALS" "replace_with_dev_sp_credentials"
@@ -401,7 +404,10 @@ fi
 if [[ " ${selected_environments[*]} " == *" stage "* ]]; then
   create_or_update_variable "stage" "AZURE_LOCATION" "$AIFACTORY_LOCATION"
   create_or_update_variable "stage" "AZURE_SUBSCRIPTION_ID" "$STAGE_SUBSCRIPTION_ID"
+  create_or_update_variable "stage" "CIDR_RANGE" "$STAGE_CIDR_RANGE"
+  create_or_update_variable "stage" "STAGE_CIDR_RANGE" "$STAGE_CIDR_RANGE"
   create_or_update_variable "stage" "AIFACTORY_CIDR_XX" "$STAGE_CIDR_RANGE"
+  create_or_update_variable "stage" "STAGE_NETWORK_ENV" "$STAGE_NETWORK_ENV"
   create_or_update_variable "stage" "NETWORK_ENV" "$STAGE_NETWORK_ENV"
   if [[ "$overwrite_azure_credential" == "y" ]]; then
     create_or_update_secret "stage" "AZURE_CREDENTIALS" "replace_with_stage_sp_credentials"
@@ -411,7 +417,10 @@ fi
 if [[ " ${selected_environments[*]} " == *" prod "* ]]; then
   create_or_update_variable "prod" "AZURE_LOCATION" "$AIFACTORY_LOCATION"
   create_or_update_variable "prod" "AZURE_SUBSCRIPTION_ID" "$PROD_SUBSCRIPTION_ID"
+  create_or_update_variable "prod" "CIDR_RANGE" "$PROD_CIDR_RANGE"
+  create_or_update_variable "prod" "PROD_CIDR_RANGE" "$PROD_CIDR_RANGE"
   create_or_update_variable "prod" "AIFACTORY_CIDR_XX" "$PROD_CIDR_RANGE"
+  create_or_update_variable "prod" "PROD_NETWORK_ENV" "$PROD_NETWORK_ENV"
   create_or_update_variable "prod" "NETWORK_ENV" "$PROD_NETWORK_ENV"
   if [[ "$overwrite_azure_credential" == "y" ]]; then
     create_or_update_secret "prod" "AZURE_CREDENTIALS" "replace_with_prod_sp_credentials"
