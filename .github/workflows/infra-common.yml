@@ -184,6 +184,24 @@ jobs:
             --parameters technicalAdminsEmail="${{ env.technical_admins_email }}" \
             --debug
 
+      - name: Debug networking inputs (before 02)
+        shell: pwsh
+        run: |
+          $keys = @(
+            'dev_test_prod','dev_test_prod_sub_id','admin_location','admin_locationSuffix','admin_commonResourceSuffix',
+            'vnetNameBase','vnetResourceGroupBase','common_subnet_name','common_vnet_cidr','common_subnet_cidr','common_subnet_scoring_cidr',
+            'common_pbi_subnet_name','common_pbi_subnet_cidr','common_bastion_subnet_cidr',
+            'vnetResourceGroup_param','vnetNameFull_param','commonResourceGroup_param','datalakeName_param','kvNameFromCOMMON_param',
+            'useCommonACR_override','subnetCommon','subnetCommonScoring','subnetCommonPowerbiGw',
+            'subnetProjGenAI','subnetProjAKS','subnetProjACA','subnetProjDatabricksPublic','subnetProjDatabricksPrivate',
+            'byoASEv3','byoAseFullResourceId','byoAseAppServicePlanResourceId',
+            'network_env','cidr_range','BYO_subnets','runNetworkingVar','technical_admins_bastion_IP_whitelist'
+          )
+          foreach ($k in $keys) {
+            $v = (Get-Item "Env:$k" -ErrorAction SilentlyContinue).Value
+            Write-Host "$k=$v"
+          }
+
       - name: 02_az_bicep_private_networking
         if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
         shell: bash
@@ -470,6 +488,24 @@ jobs:
             --parameters enableDefenderforAIResourceLevel="${{ env.enableDefenderforAIResourceLevel }}" \
             --parameters technicalAdminsEmail="${{ env.technical_admins_email }}" \
             --debug
+
+      - name: Debug networking inputs (before 02)
+        shell: pwsh
+        run: |
+          $keys = @(
+            'dev_test_prod','dev_test_prod_sub_id','admin_location','admin_locationSuffix','admin_commonResourceSuffix',
+            'vnetNameBase','vnetResourceGroupBase','common_subnet_name','common_vnet_cidr','common_subnet_cidr','common_subnet_scoring_cidr',
+            'common_pbi_subnet_name','common_pbi_subnet_cidr','common_bastion_subnet_cidr',
+            'vnetResourceGroup_param','vnetNameFull_param','commonResourceGroup_param','datalakeName_param','kvNameFromCOMMON_param',
+            'useCommonACR_override','subnetCommon','subnetCommonScoring','subnetCommonPowerbiGw',
+            'subnetProjGenAI','subnetProjAKS','subnetProjACA','subnetProjDatabricksPublic','subnetProjDatabricksPrivate',
+            'byoASEv3','byoAseFullResourceId','byoAseAppServicePlanResourceId',
+            'network_env','cidr_range','BYO_subnets','runNetworkingVar','technical_admins_bastion_IP_whitelist'
+          )
+          foreach ($k in $keys) {
+            $v = (Get-Item "Env:$k" -ErrorAction SilentlyContinue).Value
+            Write-Host "$k=$v"
+          }
 
       - name: 02_az_bicep_private_networking
         if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
@@ -759,6 +795,24 @@ jobs:
             --parameters enableDefenderforAIResourceLevel="${{ env.enableDefenderforAIResourceLevel }}" \
             --parameters technicalAdminsEmail="${{ env.technical_admins_email }}" \
             --debug
+
+      - name: Debug networking inputs (before 02)
+        shell: pwsh
+        run: |
+          $keys = @(
+            'dev_test_prod','dev_test_prod_sub_id','admin_location','admin_locationSuffix','admin_commonResourceSuffix',
+            'vnetNameBase','vnetResourceGroupBase','common_subnet_name','common_vnet_cidr','common_subnet_cidr','common_subnet_scoring_cidr',
+            'common_pbi_subnet_name','common_pbi_subnet_cidr','common_bastion_subnet_cidr',
+            'vnetResourceGroup_param','vnetNameFull_param','commonResourceGroup_param','datalakeName_param','kvNameFromCOMMON_param',
+            'useCommonACR_override','subnetCommon','subnetCommonScoring','subnetCommonPowerbiGw',
+            'subnetProjGenAI','subnetProjAKS','subnetProjACA','subnetProjDatabricksPublic','subnetProjDatabricksPrivate',
+            'byoASEv3','byoAseFullResourceId','byoAseAppServicePlanResourceId',
+            'network_env','cidr_range','BYO_subnets','runNetworkingVar','technical_admins_bastion_IP_whitelist'
+          )
+          foreach ($k in $keys) {
+            $v = (Get-Item "Env:$k" -ErrorAction SilentlyContinue).Value
+            Write-Host "$k=$v"
+          }
 
       - name: 02_az_bicep_private_networking
         if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
