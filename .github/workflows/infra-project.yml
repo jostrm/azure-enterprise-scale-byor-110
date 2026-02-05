@@ -65,6 +65,12 @@ jobs:
       AIFACTORY_SALT: ${{ vars.AIFACTORY_SALT }}
       AIFACTORY_SALT_RANDOM: ${{ vars.AIFACTORY_SALT_RANDOM }}
       deployment_random_value: ''
+      aifactory_salt: ${{ vars.AIFACTORY_SALT || '' }}
+
+      # Network env debug mirrors (match ADO debug params)
+      network_env_dev: ${{ vars.DEV_NETWORK_ENV || vars.NETWORK_ENV || 'dev' }}
+      network_env_stage: ${{ vars.STAGE_NETWORK_ENV || vars.NETWORK_ENV || 'test' }}
+      network_env_prod: ${{ vars.PROD_NETWORK_ENV || vars.NETWORK_ENV || 'prod' }}
 
       # Project types are merged in ADO
       admin_projectType: all
@@ -183,6 +189,18 @@ jobs:
       enableDefenderforAISubLevel: ${{ vars.ENABLE_DEFENDER_FOR_AI_SUB_LEVEL || 'false' }}
       enableDefenderforAIResourceLevel: ${{ vars.ENABLE_DEFENDER_FOR_AI_RESOURCE_LEVEL || 'false' }}
 
+      # DNS zone existence flags (for parity with ADO debug params)
+      zoneAzurecontainerappsExists: ${{ vars.ZONE_AZURECONTAINERAPPS_EXISTS || 'false' }}
+      zoneRedisExists: ${{ vars.ZONE_REDIS_EXISTS || 'false' }}
+      zonePostgresExists: ${{ vars.ZONE_POSTGRES_EXISTS || 'false' }}
+      zoneSqlExists: ${{ vars.ZONE_SQL_EXISTS || 'false' }}
+      zoneMongoExists: ${{ vars.ZONE_MONGO_EXISTS || 'false' }}
+      zoneServicesAiExists: ${{ vars.ZONE_SERVICES_AI_EXISTS || 'false' }}
+      zoneAPIMExists: ${{ vars.ZONE_APIM_EXISTS || 'false' }}
+
+      # Private DNS global link toggle
+      privateDnsAndVnetLinkAllGlobalLocation: ${{ vars.PRIVATE_DNS_AND_VNET_LINK_ALL_GLOBAL_LOCATION || 'false' }}
+
       # Model deployment defaults
       deployModel_gpt_X: ${{ vars.DEPLOY_MODEL_GPT_X || 'false' }}
       modelGPTXName: ${{ vars.MODEL_GPTX_NAME || 'gpt-5-mini' }}
@@ -194,6 +212,7 @@ jobs:
       deployModel_text_embedding_3_small: ${{ vars.DEPLOY_MODEL_TEXT_EMBEDDING_3_SMALL || 'false' }}
       default_embedding_capacity: ${{ vars.DEFAULT_EMBEDDING_CAPACITY || '25' }}
       deployModel_gpt_4o: ${{ vars.DEPLOY_MODEL_GPT_4O || 'true' }}
+      deployModel_gpt_4: ${{ vars.DEPLOY_MODEL_GPT_4 || 'false' }}
       default_gpt_4o_version: ${{ vars.DEFAULT_GPT_4O_VERSION || '2024-11-20' }}
       deployModel_gpt_4o_mini: ${{ vars.DEPLOY_MODEL_GPT_4O_MINI || 'false' }}
       default_gpt_4o_mini_version: ${{ vars.DEFAULT_GPT_4O_MINI_VERSION || '2024-07-18' }}
@@ -435,6 +454,46 @@ jobs:
                   -vnetNameFull_param '${{ env.vnetNameFull_resolved }}' \
                   -useServicePrincipal
 
+            - name: Check subnet existence for project
+              if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+              uses: azure/cli@v2
+              with:
+                azcliversion: latest
+                inlineScript: |
+                  set -e
+                  az account set --subscription "${{ env.dev_test_prod_sub_id }}"
+
+                  projectNumber="${{ env.project_number_000 }}"
+                  vnetName="${{ env.vnetNameFull_resolved }}"
+                  vnetRg="${{ env.vnetResourceGroup_resolved }}"
+
+                  if [ -z "$vnetName" ]; then
+                    vnetName="${{ env.vnetNameBase }}-${{ env.admin_locationSuffix }}-${{ env.dev_test_prod }}${{ env.admin_commonResourceSuffix }}"
+                  fi
+
+                  if [ -z "$vnetRg" ]; then
+                    vnetRg="${{ env.admin_aifactoryPrefixRG }}${{ env.vnetResourceGroupBase }}-${{ env.admin_locationSuffix }}-${{ env.dev_test_prod }}${{ env.admin_aifactorySuffixRG }}"
+                  fi
+
+                  check_subnet_exists() {
+                    local subnet_name="$1"
+                    local var_name="$2"
+
+                    if az network vnet subnet show --name "$subnet_name" --vnet-name "$vnetName" --resource-group "$vnetRg" >/dev/null 2>&1; then
+                      echo "${var_name}=true" >> $GITHUB_ENV
+                    else
+                      echo "${var_name}=false" >> $GITHUB_ENV
+                    fi
+                  }
+
+                  check_subnet_exists "snt-prj${projectNumber}-genai" "sntGenaiExists"
+                  check_subnet_exists "snt-prj${projectNumber}-aca" "sntAcaExists"
+                  check_subnet_exists "snt-prj${projectNumber}-aca-002" "sntAca002Exists"
+                  check_subnet_exists "snt-prj${projectNumber}-aks" "sntAksExists"
+                  check_subnet_exists "snt-prj${projectNumber}-aks-002" "sntAks002Exists"
+                  check_subnet_exists "snt-prj${projectNumber}-dbxpriv" "sntDatabricksPrivExists"
+                  check_subnet_exists "snt-prj${projectNumber}-dbxpub" "sntDatabricksPubExists"
+
             - name: Deploy project subnets + NSGs (GenAI)
               if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
               uses: azure/cli@v2
@@ -480,6 +539,13 @@ jobs:
                     --parameters byoAseFullResourceId="${{ env.byoAseFullResourceId }}" \
                     --parameters byoAseAppServicePlanResourceId="${{ env.byoAseAppServicePlanResourceId }}" \
                     --parameters centralDnsZoneByPolicyInHub="${{ env.centralDnsZoneByPolicyInHub }}" \
+                    --parameters sntGenaiExists="${{ env.sntGenaiExists }}" \
+                    --parameters sntAcaExists="${{ env.sntAcaExists }}" \
+                    --parameters sntAca002Exists="${{ env.sntAca002Exists }}" \
+                    --parameters sntAksExists="${{ env.sntAksExists }}" \
+                    --parameters sntAks002Exists="${{ env.sntAks002Exists }}" \
+                    --parameters sntDatabricksPrivExists="${{ env.sntDatabricksPrivExists }}" \
+                    --parameters sntDatabricksPubExists="${{ env.sntDatabricksPubExists }}" \
                     --parameters aksOutboundType="${{ env.aksOutboundType }}" \
                     --parameters azureFirewallPrivateIp="${{ env.aksAzureFirewallPrivateIp }}" \
                     --debug
@@ -681,6 +747,81 @@ jobs:
                     --parameters randomValue="${{ env.deployment_random_value }}" \
                     --parameters projectPrefix="${{ env.projectPrefix }}" \
                     --parameters projectSuffix="${{ env.projectSuffix }}" \
+                    --parameters privateDnsAndVnetLinkAllGlobalLocation="${{ env.privateDnsAndVnetLinkAllGlobalLocation }}" \
+                    --parameters zoneAzurecontainerappsExists="${{ env.zoneAzurecontainerappsExists }}" \
+                    --parameters zoneRedisExists="${{ env.zoneRedisExists }}" \
+                    --parameters zonePostgresExists="${{ env.zonePostgresExists }}" \
+                    --parameters zoneSqlExists="${{ env.zoneSqlExists }}" \
+                    --parameters zoneMongoExists="${{ env.zoneMongoExists }}" \
+                    --parameters zoneServicesAiExists="${{ env.zoneServicesAiExists }}" \
+                    --parameters zoneAPIMExists="${{ env.zoneAPIMExists }}" \
+                    --parameters enableDebugging="true" \
+                    --parameters DEBUG_enableAIServices="${{ env.enableAIServices }}" \
+                    --parameters DEBUG_enableAIFoundryHub="${{ env.enableAIFoundryHub }}" \
+                    --parameters DEBUG_enableAISearch="${{ env.enableAISearch }}" \
+                    --parameters DEBUG_enableAzureMachineLearning="${{ env.enableAzureMachineLearning }}" \
+                    --parameters DEBUG_enableFunction="${{ env.enableFunction }}" \
+                    --parameters DEBUG_functionRuntime="${{ env.functionRuntime }}" \
+                    --parameters DEBUG_functionVersion="${{ env.functionVersion }}" \
+                    --parameters DEBUG_enableWebApp="${{ env.enableWebApp }}" \
+                    --parameters DEBUG_webAppRuntime="${{ env.webAppRuntime }}" \
+                    --parameters DEBUG_webAppRuntimeVersion="${{ env.webAppRuntimeVersion }}" \
+                    --parameters DEBUG_aseSku="${{ env.aseSku }}" \
+                    --parameters DEBUG_aseSkuCode="${{ env.aseSkuCode }}" \
+                    --parameters DEBUG_aseSkuWorkers="${{ env.aseSkuWorkers }}" \
+                    --parameters DEBUG_enableContainerApps="${{ env.enableContainerApps }}" \
+                    --parameters DEBUG_enableAppInsightsDashboard="${{ env.enableAppInsightsDashboard }}" \
+                    --parameters DEBUG_aca_a_registry_image="${{ env.aca_a_registry_image }}" \
+                    --parameters DEBUG_aca_w_registry_image="${{ env.aca_w_registry_image }}" \
+                    --parameters DEBUG_enableBingSearch="${{ env.enableBing }}" \
+                    --parameters DEBUG_enableCosmosDB="${{ env.enableCosmosDB }}" \
+                    --parameters DEBUG_enableAzureOpenAI="${{ env.enableAzureOpenAI }}" \
+                    --parameters DEBUG_enableAzureAIVision="${{ env.enableAzureAIVision }}" \
+                    --parameters DEBUG_enableAzureSpeech="${{ env.enableAzureSpeech }}" \
+                    --parameters DEBUG_enableAIDocIntelligence="${{ env.enableAIDocIntelligence }}" \
+                    --parameters DEBUG_disableContributorAccessForUsers="${{ env.disableContributorAccessForUsers }}" \
+                    --parameters DEBUG_enablePostgreSQL="${{ env.enablePostgreSQL }}" \
+                    --parameters DEBUG_enableRedisCache="${{ env.enableRedisCache }}" \
+                    --parameters DEBUG_enableSQLDatabase="${{ env.enableSQLDatabase }}" \
+                    --parameters DEBUG_BYO_subnets="${{ env.BYO_subnets }}" \
+                    --parameters DEBUG_network_env_dev="${{ env.network_env_dev }}" \
+                    --parameters DEBUG_network_env_stage="${{ env.network_env_stage }}" \
+                    --parameters DEBUG_network_env_prod="${{ env.network_env_prod }}" \
+                    --parameters DEBUG_vnetResourceGroup_param="${{ env.vnetResourceGroup_resolved }}" \
+                    --parameters DEBUG_vnetNameFull_param="${{ env.vnetNameFull_resolved }}" \
+                    --parameters DEBUG_commonResourceGroup_param="${{ env.commonResourceGroup_param }}" \
+                    --parameters DEBUG_datalakeName_param="${{ env.datalakeName_param }}" \
+                    --parameters DEBUG_kvNameFromCOMMON_param="${{ env.kvNameFromCOMMON_param }}" \
+                    --parameters DEBUG_useCommonACR_override="${{ env.useCommonACR_override }}" \
+                    --parameters DEBUG_subnetCommon="${{ env.subnetCommon }}" \
+                    --parameters DEBUG_subnetCommonScoring="${{ env.subnetCommonScoring }}" \
+                    --parameters DEBUG_subnetCommonPowerbiGw="${{ env.subnetCommonPowerbiGw }}" \
+                    --parameters DEBUG_subnetProjGenAI="${{ env.subnetProjGenAI }}" \
+                    --parameters DEBUG_subnetProjAKS="${{ env.subnetProjAKS }}" \
+                    --parameters DEBUG_subnetProjACA="${{ env.subnetProjACA }}" \
+                    --parameters DEBUG_subnetProjDatabricksPublic="${{ env.subnetProjDatabricksPublic }}" \
+                    --parameters DEBUG_subnetProjDatabricksPrivate="${{ env.subnetProjDatabricksPrivate }}" \
+                    --parameters DEBUG_byoASEv3="${{ env.byoASEv3 }}" \
+                    --parameters DEBUG_byoAseFullResourceId="${{ env.byoAseFullResourceId }}" \
+                    --parameters DEBUG_byoAseAppServicePlanResourceId="${{ env.byoAseAppServicePlanResourceId }}" \
+                    --parameters DEBUG_enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
+                    --parameters DEBUG_allowPublicAccessWhenBehindVnet="${{ env.allowPublicAccessWhenBehindVnet }}" \
+                    --parameters DEBUG_enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
+                    --parameters DEBUG_admin_aifactorySuffixRG="${{ env.admin_aifactorySuffixRG }}" \
+                    --parameters DEBUG_admin_commonResourceSuffix="${{ env.admin_commonResourceSuffix }}" \
+                    --parameters DEBUG_admin_prjResourceSuffix="${{ env.admin_prjResourceSuffix }}" \
+                    --parameters DEBUG_aifactory_salt="${{ env.aifactory_salt }}" \
+                    --parameters DEBUG_admin_projectType="${{ env.admin_projectType }}" \
+                    --parameters DEBUG_project_number_000="${{ env.project_number_000 }}" \
+                    --parameters DEBUG_project_service_principal_AppID_seeding_kv_name="${{ env.project_service_principal_AppID_seeding_kv_name }}" \
+                    --parameters DEBUG_project_service_principal_OID_seeding_kv_name="${{ env.project_service_principal_OID_seeding_kv_name }}" \
+                    --parameters DEBUG_project_service_principal_Secret_seeding_kv_name="${{ env.project_service_principal_Secret_seeding_kv_name }}" \
+                    --parameters DEBUG_project_IP_whitelist="${{ env.project_IP_whitelist }}" \
+                    --parameters DEBUG_deployModel_gpt_4="${{ env.deployModel_gpt_4 }}" \
+                    --parameters DEBUG_deployModel_text_embedding_ada_002="${{ env.deployModel_text_embedding_ada_002 }}" \
+                    --parameters DEBUG_deployModel_text_embedding_3_large="${{ env.deployModel_text_embedding_3_large }}" \
+                    --parameters DEBUG_deployModel_text_embedding_3_small="${{ env.deployModel_text_embedding_3_small }}" \
+                    --parameters DEBUG_deployModel_gpt_4o_mini="${{ env.deployModel_gpt_4o_mini }}" \
                     --parameters tags=${{ env.tags }} \
                     --parameters tagsProject=${{ env.tagsProject }} \
                     --parameters diagnosticSettingLevel="${{ env.diagnosticSettingLevel }}" \

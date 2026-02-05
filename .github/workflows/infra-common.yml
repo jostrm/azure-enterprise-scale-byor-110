@@ -86,6 +86,7 @@ jobs:
       inputCommonSPIDKey: "${{ vars.INPUT_COMMON_SPID_KEY }}"
       inputCommonSPSecretKey: "${{ vars.INPUT_COMMON_SP_SECRET_KEY }}"
       commonServicePrincipleOIDKey: "${{ vars.COMMON_SERVICE_PRINCIPLE_OID_KEY }}"
+      enableDatafactoryCommon: "${{ vars.ENABLE_DATAFACTORY_COMMON || 'false' }}"
       acr_adminUserEnabled: "${{ vars.ACR_ADMIN_USER_ENABLED }}"
       acr_dedicated: "${{ vars.ACR_DEDICATED }}"
       acr_SKU: "${{ vars.ACR_SKU }}"
@@ -169,6 +170,12 @@ jobs:
             --parameters locationSuffix="${{ env.admin_locationSuffix }}" \
             --parameters location="${{ env.admin_location }}" \
             --parameters tags='${{ env.tags }}' \
+            --parameters inputKeyvault="${{ env.admin_bicep_kv_fw }}" \
+            --parameters inputKeyvaultSubscription="${{ env.admin_bicep_input_keyvault_subscription }}" \
+            --parameters inputKeyvaultResourcegroup="${{ env.admin_bicep_kv_fw_rg }}" \
+            --parameters cmk="${{ env.cmk }}" \
+            --parameters cmkKeyName="${{ env.cmkKeyName }}" \
+            --parameters commonResourceSuffix="${{ env.admin_commonResourceSuffix }}" \
             --parameters env="${{ env.dev_test_prod }}" \
             --parameters technicalAdminsObjectID="${{ env.technical_admins_ad_object_id }}" \
             --parameters useAdGroups="${{ env.useAdGroups }}" \
@@ -295,6 +302,7 @@ jobs:
             --parameters containerRegistrySkuName="${{ env.acr_SKU }}" \
             --parameters network_env="${{ env.network_env }}" \
             --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
+            --parameters enableDatafactoryCommon="${{ env.enableDatafactoryCommon }}" \
             --parameters commonResourceName="${{ env.vnetResourceGroupBase }}" \
             --debug
 
@@ -368,6 +376,7 @@ jobs:
       inputCommonSPIDKey: "${{ vars.INPUT_COMMON_SPID_KEY }}"
       inputCommonSPSecretKey: "${{ vars.INPUT_COMMON_SP_SECRET_KEY }}"
       commonServicePrincipleOIDKey: "${{ vars.COMMON_SERVICE_PRINCIPLE_OID_KEY }}"
+      enableDatafactoryCommon: "${{ vars.ENABLE_DATAFACTORY_COMMON || 'false' }}"
       acr_adminUserEnabled: "${{ vars.ACR_ADMIN_USER_ENABLED }}"
       acr_dedicated: "${{ vars.ACR_DEDICATED }}"
       acr_SKU: "${{ vars.ACR_SKU }}"
@@ -448,6 +457,12 @@ jobs:
             --parameters locationSuffix="${{ env.admin_locationSuffix }}" \
             --parameters location="${{ env.admin_location }}" \
             --parameters tags='${{ env.tags }}' \
+            --parameters inputKeyvault="${{ env.admin_bicep_kv_fw }}" \
+            --parameters inputKeyvaultSubscription="${{ env.admin_bicep_input_keyvault_subscription }}" \
+            --parameters inputKeyvaultResourcegroup="${{ env.admin_bicep_kv_fw_rg }}" \
+            --parameters cmk="${{ env.cmk }}" \
+            --parameters cmkKeyName="${{ env.cmkKeyName }}" \
+            --parameters commonResourceSuffix="${{ env.admin_commonResourceSuffix }}" \
             --parameters env="${{ env.dev_test_prod }}" \
             --parameters technicalAdminsObjectID="${{ env.technical_admins_ad_object_id }}" \
             --parameters useAdGroups="${{ env.useAdGroups }}" \
@@ -574,6 +589,7 @@ jobs:
             --parameters containerRegistrySkuName="${{ env.acr_SKU }}" \
             --parameters network_env="${{ env.network_env }}" \
             --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
+            --parameters enableDatafactoryCommon="${{ env.enableDatafactoryCommon }}" \
             --parameters commonResourceName="${{ env.vnetResourceGroupBase }}" \
             --debug
 
@@ -649,6 +665,7 @@ jobs:
       inputCommonSPIDKey: "${{ vars.INPUT_COMMON_SPID_KEY }}"
       inputCommonSPSecretKey: "${{ vars.INPUT_COMMON_SP_SECRET_KEY }}"
       commonServicePrincipleOIDKey: "${{ vars.COMMON_SERVICE_PRINCIPLE_OID_KEY }}"
+      enableDatafactoryCommon: "${{ vars.ENABLE_DATAFACTORY_COMMON || 'false' }}"
       acr_adminUserEnabled: "${{ vars.ACR_ADMIN_USER_ENABLED }}"
       acr_dedicated: "${{ vars.ACR_DEDICATED }}"
       acr_SKU: "${{ vars.ACR_SKU }}"
@@ -729,6 +746,12 @@ jobs:
             --parameters locationSuffix="${{ env.admin_locationSuffix }}" \
             --parameters location="${{ env.admin_location }}" \
             --parameters tags='${{ env.tags }}' \
+            --parameters inputKeyvault="${{ env.admin_bicep_kv_fw }}" \
+            --parameters inputKeyvaultSubscription="${{ env.admin_bicep_input_keyvault_subscription }}" \
+            --parameters inputKeyvaultResourcegroup="${{ env.admin_bicep_kv_fw_rg }}" \
+            --parameters cmk="${{ env.cmk }}" \
+            --parameters cmkKeyName="${{ env.cmkKeyName }}" \
+            --parameters commonResourceSuffix="${{ env.admin_commonResourceSuffix }}" \
             --parameters env="${{ env.dev_test_prod }}" \
             --parameters technicalAdminsObjectID="${{ env.technical_admins_ad_object_id }}" \
             --parameters useAdGroups="${{ env.useAdGroups }}" \
@@ -855,5 +878,6 @@ jobs:
             --parameters containerRegistrySkuName="${{ env.acr_SKU }}" \
             --parameters network_env="${{ env.network_env }}" \
             --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
+            --parameters enableDatafactoryCommon="${{ env.enableDatafactoryCommon }}" \
             --parameters commonResourceName="${{ env.vnetResourceGroupBase }}" \
             --debug
