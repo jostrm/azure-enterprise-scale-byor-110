@@ -57,8 +57,8 @@ jobs:
       common_pbi_subnet_cidr: "${{ vars.COMMON_PBI_SUBNET_CIDR }}"
       common_bastion_subnet_name: "${{ vars.COMMON_BASTION_SUBNET_NAME }}"
       common_bastion_subnet_cidr: "${{ vars.COMMON_BASTION_SUBNET_CIDR }}"
-      vnetResourceGroup_param: "${{ vars.DEV_BYO_VNET_RG || vars.VNET_RESOURCE_GROUP_PARAM }}"
-      vnetNameFull_param: "${{ vars.DEV_BYO_VNET_NAME || vars.VNET_NAME_FULL_PARAM }}"
+      vnetResourceGroup_param: "${{ vars.VNET_RESOURCE_GROUP_PARAM || '' }}"
+      vnetNameFull_param: "${{ vars.VNET_NAME_FULL_PARAM || '' }}"
       commonResourceGroup_param: "${{ vars.COMMON_RESOURCE_GROUP_PARAM }}"
       datalakeName_param: "${{ vars.DATALAKE_NAME_PARAM }}"
       kvNameFromCOMMON_param: "${{ vars.KV_NAME_FROM_COMMON_PARAM }}"
@@ -303,8 +303,8 @@ jobs:
       dev_test_prod_sub_id: "${{ vars.STAGE_SUBSCRIPTION_ID }}"
       network_env: "${{ vars.STAGE_NETWORK_ENV || vars.NETWORK_ENV || 'test' }}"
       cidr_range: "${{ vars.STAGE_CIDR_RANGE }}"
-      vnetResourceGroup_param: "${{ vars.STAGE_BYO_VNET_RG || vars.VNET_RESOURCE_GROUP_PARAM }}"
-      vnetNameFull_param: "${{ vars.STAGE_BYO_VNET_NAME || vars.VNET_NAME_FULL_PARAM }}"
+      vnetResourceGroup_param: "${{ vars.VNET_RESOURCE_GROUP_PARAM || '' }}"
+      vnetNameFull_param: "${{ vars.VNET_NAME_FULL_PARAM || '' }}"
     steps: *common_steps
 
   common-prod:
@@ -321,6 +321,6 @@ jobs:
       dev_test_prod_sub_id: "${{ vars.PROD_SUBSCRIPTION_ID }}"
       network_env: "${{ vars.PROD_NETWORK_ENV || vars.NETWORK_ENV || 'prod' }}"
       cidr_range: "${{ vars.PROD_CIDR_RANGE }}"
-      vnetResourceGroup_param: "${{ vars.PROD_BYO_VNET_RG || vars.VNET_RESOURCE_GROUP_PARAM }}"
-      vnetNameFull_param: "${{ vars.PROD_BYO_VNET_NAME || vars.VNET_NAME_FULL_PARAM }}"
+      vnetResourceGroup_param: "${{ vars.VNET_RESOURCE_GROUP_PARAM || '' }}"
+      vnetNameFull_param: "${{ vars.VNET_NAME_FULL_PARAM || '' }}"
     steps: *common_steps

@@ -404,7 +404,7 @@ variables:
   subnetProjDatabricksPublic: "snt-prj001-dbxpub" # Example, no replacement of <xxx>
   subnetProjDatabricksPrivate: "snt-prj<xxx>-dbxpriv" # Example, with replacement of <xxx>
   byoASEv3: "false"
-  byoAseFullResourceId: "/subscriptions/...yourASEnameS2"
+  byoAseFullResourceId: "subscriptions/...yourASEnameS2"
   byoAseAppServicePlanResourceId: ""
 
   # ============================================================================
