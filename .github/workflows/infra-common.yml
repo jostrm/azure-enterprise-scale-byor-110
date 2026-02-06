@@ -304,7 +304,6 @@ jobs:
             --parameters inputKeyvaultResourcegroup="${{ env.admin_bicep_kv_fw_rg }}" \
             --parameters cmk="${{ env.cmk }}" \
             --parameters cmkKeyName="${{ env.cmkKeyName }}" \
-            --parameters admin_bicep_input_keyvault_subscription="${{ env.admin_bicep_input_keyvault_subscription }}" \
             --parameters inputCommonSPIDKey="${{ env.inputCommonSPIDKey }}" \
             --parameters inputCommonSPSecretKey="${{ env.inputCommonSPSecretKey }}" \
             --parameters commonServicePrincipleOIDKey="${{ env.commonServicePrincipleOIDKey }}" \
@@ -607,7 +606,6 @@ jobs:
             --parameters inputKeyvaultResourcegroup="${{ env.admin_bicep_kv_fw_rg }}" \
             --parameters cmk="${{ env.cmk }}" \
             --parameters cmkKeyName="${{ env.cmkKeyName }}" \
-            --parameters admin_bicep_input_keyvault_subscription="${{ env.admin_bicep_input_keyvault_subscription }}" \
             --parameters inputCommonSPIDKey="${{ env.inputCommonSPIDKey }}" \
             --parameters inputCommonSPSecretKey="${{ env.inputCommonSPSecretKey }}" \
             --parameters commonServicePrincipleOIDKey="${{ env.commonServicePrincipleOIDKey }}" \
@@ -912,7 +910,6 @@ jobs:
             --parameters inputKeyvaultResourcegroup="${{ env.admin_bicep_kv_fw_rg }}" \
             --parameters cmk="${{ env.cmk }}" \
             --parameters cmkKeyName="${{ env.cmkKeyName }}" \
-            --parameters admin_bicep_input_keyvault_subscription="${{ env.admin_bicep_input_keyvault_subscription }}" \
             --parameters inputCommonSPIDKey="${{ env.inputCommonSPIDKey }}" \
             --parameters inputCommonSPSecretKey="${{ env.inputCommonSPSecretKey }}" \
             --parameters commonServicePrincipleOIDKey="${{ env.commonServicePrincipleOIDKey }}" \
