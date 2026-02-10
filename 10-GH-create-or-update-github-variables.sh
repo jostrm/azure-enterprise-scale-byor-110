@@ -327,6 +327,7 @@ repo_level_vars=(
   "ADMIN_AI_SEARCH_TIER"
   "INPUT_COMMON_SPID_KEY"
   "INPUT_COMMON_SPSECRET_KEY"
+  "INPUT_COMMON_SP_SECRET_KEY"
   "COMMON_SERVICE_PRINCIPLE_OID_KEY"
 )
 
@@ -372,6 +373,7 @@ for env in "${selected_environments[@]}"; do
     create_or_update_variable $env "COMMON_SERVICE_PRINCIPAL_KV_S_NAME_SECRET" "$COMMON_SERVICE_PRINCIPAL_KV_S_NAME_SECRET"
     create_or_update_variable $env "INPUT_COMMON_SPID_KEY" "$INPUT_COMMON_SPID_KEY"
     create_or_update_variable $env "INPUT_COMMON_SPSECRET_KEY" "$INPUT_COMMON_SPSECRET_KEY"
+    create_or_update_variable $env "INPUT_COMMON_SP_SECRET_KEY" "$INPUT_COMMON_SP_SECRET_KEY"
     create_or_update_variable $env "COMMON_SERVICE_PRINCIPLE_OID_KEY" "$COMMON_SERVICE_PRINCIPLE_OID_KEY"
 
     # Networking
