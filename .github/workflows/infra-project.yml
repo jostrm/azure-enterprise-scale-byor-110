@@ -499,13 +499,7 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "=== Subnet Calculation Starting ==="
-          Write-Host "Current Azure context:"
-          Get-AzContext | Format-List
-          
-          Write-Host "`nSetting subscription context..."
-          Set-AzContext -SubscriptionId '${{ env.dev_test_prod_sub_id }}'
-          
-          Write-Host "`nParameters:"
+          Write-Host "Parameters:"
           Write-Host "  Environment: ${{ env.dev_test_prod }}"
           Write-Host "  Subscription: ${{ env.dev_test_prod_sub_id }}"
           Write-Host "  VNet Name: ${{ env.vnetNameFull_resolved }}"
@@ -519,6 +513,8 @@ jobs:
             -bicepPar4 '${{ github.workspace }}/aifactory/parameters/21-22-esml-prj-parameters.json' `
             -bicepPar5 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-override.json' `
             -filePath '${{ github.workspace }}/aifactory/parameters/' `
+            -spObjId '${{ env.common_sp_appid_value }}' `
+            -spSecret '${{ env.common_sp_secret_value }}' `
             -env '${{ env.dev_test_prod }}' `
             -subscriptionId '${{ env.dev_test_prod_sub_id }}' `
             -prjResourceSuffix '${{ env.admin_prjResourceSuffix }}' `
@@ -532,7 +528,8 @@ jobs:
             -vnetNameBase '${{ env.vnetNameBase }}' `
             -tenantId '${{ env.tenantId }}' `
             -vnetResourceGroup_param '${{ env.vnetResourceGroup_resolved }}' `
-            -vnetNameFull_param '${{ env.vnetNameFull_resolved }}'
+            -vnetNameFull_param '${{ env.vnetNameFull_resolved }}' `
+            -useServicePrincipal
           
           Write-Host "`n=== Listing generated parameter files ==="
           Get-ChildItem '${{ github.workspace }}/aifactory/parameters/' | Format-Table Name, Length
@@ -694,8 +691,11 @@ jobs:
       - name: 14_Generate_Dynamic_Network_Parameters
         run: |
           sudo pwsh -Command "${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts/genDynamicNetworkParamFile.ps1" \
+            -spObjId '${{ env.common_sp_appid_value }}' \
+            -spSecret '${{ env.common_sp_secret_value }}' \
             -BYO_subnets '${{ env.BYO_subnets }}' \
             -network_env '${{ env.network_env }}' \
+            -useServicePrincipal \
             -bicepPar1 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-1.json' \
             -bicepPar2 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-2-12_13_21_22.json' \
             -bicepPar3 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-4-13_21_22.json' \
