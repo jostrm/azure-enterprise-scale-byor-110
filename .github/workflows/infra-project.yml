@@ -488,18 +488,8 @@ jobs:
             '$schema' = 'https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#'
             contentVersion = '1.0.0.0'
             parameters = @{
-              vnetResourceGroup_param      = @{ value = '${{ env.vnetResourceGroup_resolved }}' }
-              vnetNameFull_param           = @{ value = '${{ env.vnetNameFull_resolved }}' }
-              subnetCommon                 = @{ value = '${{ env.subnetCommon }}' }
-              subnetCommonScoring          = @{ value = '${{ env.subnetCommonScoring }}' }
-              subnetCommonPowerbiGw        = @{ value = '${{ env.subnetCommonPowerbiGw }}' }
-              subnetProjGenAI              = @{ value = '${{ env.subnetProjGenAI }}' }
-              subnetProjAKS                = @{ value = '${{ env.subnetProjAKS }}' }
-              subnetProjAKS2               = @{ value = '${{ env.subnetProjAKS2 }}' }
-              subnetProjACA                = @{ value = '${{ env.subnetProjACA }}' }
-              subnetProjACA2               = @{ value = '${{ env.subnetProjACA2 }}' }
-              subnetProjDatabricksPublic   = @{ value = '${{ env.subnetProjDatabricksPublic }}' }
-              subnetProjDatabricksPrivate  = @{ value = '${{ env.subnetProjDatabricksPrivate }}' }
+              vnetResourceGroup_param = @{ value = '${{ env.vnetResourceGroup_resolved }}' }
+              vnetNameFull_param      = @{ value = '${{ env.vnetNameFull_resolved }}' }
             }
           }
           $override | ConvertTo-Json -Depth 5 | Out-File (Join-Path $paramDir '10-esml-globals-override.json') -Encoding utf8
