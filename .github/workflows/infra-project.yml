@@ -496,15 +496,29 @@ jobs:
 
       - name: 05_Calculate_Subnet_Allocations
         if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
-        working-directory: ${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts
+        shell: pwsh
         run: |
-          pwsh -File "${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts/subnetCalc_v2.ps1" `
-            -bicepPar1 '../../../../../aifactory/parameters/10-esml-globals-1.json' `
-            -bicepPar2 '../../../../../aifactory/parameters/10-esml-globals-2-12_13_21_22.json' `
-            -bicepPar3 '../../../../../aifactory/parameters/10-esml-globals-4-13_21_22.json' `
-            -bicepPar4 '../../../../../aifactory/parameters/21-22-esml-prj-parameters.json' `
-            -bicepPar5 '../../../../../aifactory/parameters/10-esml-globals-override.json' `
-            -filePath '../../../../../aifactory/parameters/' `
+          Write-Host "=== Subnet Calculation Starting ==="
+          Write-Host "Current Azure context:"
+          Get-AzContext | Format-List
+          
+          Write-Host "`nSetting subscription context..."
+          Set-AzContext -SubscriptionId '${{ env.dev_test_prod_sub_id }}'
+          
+          Write-Host "`nParameters:"
+          Write-Host "  Environment: ${{ env.dev_test_prod }}"
+          Write-Host "  Subscription: ${{ env.dev_test_prod_sub_id }}"
+          Write-Host "  VNet Name: ${{ env.vnetNameFull_resolved }}"
+          Write-Host "  VNet RG: ${{ env.vnetResourceGroup_resolved }}"
+          Write-Host "  Project Type: ${{ env.admin_projectType }}"
+          
+          & '${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts/subnetCalc_v2.ps1' `
+            -bicepPar1 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-1.json' `
+            -bicepPar2 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-2-12_13_21_22.json' `
+            -bicepPar3 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-4-13_21_22.json' `
+            -bicepPar4 '${{ github.workspace }}/aifactory/parameters/21-22-esml-prj-parameters.json' `
+            -bicepPar5 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-override.json' `
+            -filePath '${{ github.workspace }}/aifactory/parameters/' `
             -env '${{ env.dev_test_prod }}' `
             -subscriptionId '${{ env.dev_test_prod_sub_id }}' `
             -prjResourceSuffix '${{ env.admin_prjResourceSuffix }}' `
@@ -519,6 +533,17 @@ jobs:
             -tenantId '${{ env.tenantId }}' `
             -vnetResourceGroup_param '${{ env.vnetResourceGroup_resolved }}' `
             -vnetNameFull_param '${{ env.vnetNameFull_resolved }}'
+          
+          Write-Host "`n=== Listing generated parameter files ==="
+          Get-ChildItem '${{ github.workspace }}/aifactory/parameters/' | Format-Table Name, Length
+          
+          Write-Host "`n=== Content of subnetParameters.json ==="
+          if (Test-Path '${{ github.workspace }}/aifactory/parameters/subnetParameters.json') {
+            Get-Content '${{ github.workspace }}/aifactory/parameters/subnetParameters.json' | Write-Host
+          } else {
+            Write-Error "subnetParameters.json was not created!"
+            exit 1
+          }
 
       - name: 06_Check_Subnet_Existence
         if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
@@ -567,14 +592,20 @@ jobs:
           azcliversion: latest
           inlineScript: |
             az account set --subscription "${{ env.dev_test_prod_sub_id }}"
+            
+            echo "=== Verifying parameter files exist ==="
+            ls -la "${{ github.workspace }}/aifactory/parameters/"
+            echo "=== Content of subnetParameters.json ==="
+            cat "${{ github.workspace }}/aifactory/parameters/subnetParameters.json"
+            
             az deployment group create \
               --name "esml-p${{ env.project_number_000 }}-${{ env.dev_test_prod }}-${{ env.admin_locationSuffix }}${{ env.admin_aifactorySuffixRG }}SubnetDeplProj" \
               --subscription "${{ env.dev_test_prod_sub_id }}" \
               --resource-group "${{ env.admin_aifactoryPrefixRG }}${{ env.vnetResourceGroupBase }}-${{ env.admin_locationSuffix }}-${{ env.dev_test_prod }}${{ env.admin_aifactorySuffixRG }}" \
-              --template-file "azure-enterprise-scale-ml/environment_setup/aifactory/bicep/esml-genai-1/31-network.bicep" \
-              --parameters @"./aifactory/parameters/subnetParameters.json" \
-              --parameters @"./aifactory/parameters/10-esml-globals-1.json" \
-              --parameters @"./aifactory/parameters/10-esml-globals-override.json" \
+              --template-file "${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/esml-genai-1/31-network.bicep" \
+              --parameters @"${{ github.workspace }}/aifactory/parameters/subnetParameters.json" \
+              --parameters @"${{ github.workspace }}/aifactory/parameters/10-esml-globals-1.json" \
+              --parameters @"${{ github.workspace }}/aifactory/parameters/10-esml-globals-override.json" \
               --parameters env="${{ env.dev_test_prod }}" \
               --parameters projectNumber="${{ env.project_number_000 }}" \
               --parameters location="${{ env.admin_location }}" \
@@ -661,17 +692,16 @@ jobs:
               --ip-address "${{ env.runner_ip }}"
 
       - name: 14_Generate_Dynamic_Network_Parameters
-        working-directory: ${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts
         run: |
           sudo pwsh -Command "${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts/genDynamicNetworkParamFile.ps1" \
             -BYO_subnets '${{ env.BYO_subnets }}' \
             -network_env '${{ env.network_env }}' \
-            -bicepPar1 '../../../../../aifactory/parameters/10-esml-globals-1.json' \
-            -bicepPar2 '../../../../../aifactory/parameters/10-esml-globals-2-12_13_21_22.json' \
-            -bicepPar3 '../../../../../aifactory/parameters/10-esml-globals-4-13_21_22.json' \
-            -bicepPar4 '../../../../../aifactory/parameters/21-22-esml-prj-parameters.json' \
-            -bicepPar5 '../../../../../aifactory/parameters/10-esml-globals-override.json' \
-            -filePath '../../../../../aifactory/parameters/' \
+            -bicepPar1 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-1.json' \
+            -bicepPar2 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-2-12_13_21_22.json' \
+            -bicepPar3 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-4-13_21_22.json' \
+            -bicepPar4 '${{ github.workspace }}/aifactory/parameters/21-22-esml-prj-parameters.json' \
+            -bicepPar5 '${{ github.workspace }}/aifactory/parameters/10-esml-globals-override.json' \
+            -filePath '${{ github.workspace }}/aifactory/parameters/' \
             -env '${{ env.dev_test_prod }}' \
             -locationSuffixADO '${{ env.admin_locationSuffix }}' \
             -aifactorySuffixRGADO '${{ env.admin_aifactorySuffixRG }}' \
