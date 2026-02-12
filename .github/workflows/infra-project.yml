@@ -505,8 +505,6 @@ jobs:
             -bicepPar4 '../../../../../aifactory/parameters/21-22-esml-prj-parameters.json' `
             -bicepPar5 '../../../../../aifactory/parameters/10-esml-globals-override.json' `
             -filePath '../../../../../aifactory/parameters/' `
-            -spObjId '${{ env.common_sp_appid_value }}' `
-            -spSecret '${{ env.common_sp_secret_value }}' `
             -env '${{ env.dev_test_prod }}' `
             -subscriptionId '${{ env.dev_test_prod_sub_id }}' `
             -prjResourceSuffix '${{ env.admin_prjResourceSuffix }}' `
@@ -520,8 +518,7 @@ jobs:
             -vnetNameBase '${{ env.vnetNameBase }}' `
             -tenantId '${{ env.tenantId }}' `
             -vnetResourceGroup_param '${{ env.vnetResourceGroup_resolved }}' `
-            -vnetNameFull_param '${{ env.vnetNameFull_resolved }}' `
-            -useServicePrincipal
+            -vnetNameFull_param '${{ env.vnetNameFull_resolved }}'
 
       - name: 06_Check_Subnet_Existence
         if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
@@ -667,11 +664,8 @@ jobs:
         working-directory: ${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts
         run: |
           sudo pwsh -Command "${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts/genDynamicNetworkParamFile.ps1" \
-            -spObjId '${{ env.common_sp_appid_value }}' \
-            -spSecret '${{ env.common_sp_secret_value }}' \
             -BYO_subnets '${{ env.BYO_subnets }}' \
             -network_env '${{ env.network_env }}' \
-            -useServicePrincipal \
             -bicepPar1 '../../../../../aifactory/parameters/10-esml-globals-1.json' \
             -bicepPar2 '../../../../../aifactory/parameters/10-esml-globals-2-12_13_21_22.json' \
             -bicepPar3 '../../../../../aifactory/parameters/10-esml-globals-4-13_21_22.json' \
