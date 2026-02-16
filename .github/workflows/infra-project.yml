@@ -437,6 +437,47 @@ jobs:
             echo "common_sp_secret_value=$(az keyvault secret show --vault-name \"${{ env.admin_bicep_kv_fw }}\" --name \"${{ env.common_sp_secret_seeding_kv_name }}\" --query 'value' --output tsv)" >> $GITHUB_ENV
             echo "project_sp_oid_value=$(az keyvault secret show --vault-name \"${{ env.admin_bicep_kv_fw }}\" --name \"${{ env.project_service_principal_OID_seeding_kv_name }}\" --query 'value' --output tsv)" >> $GITHUB_ENV
 
+      - name: 03b_Validate_Service_Principal_Credentials
+        run: |
+          Write-Host "=== Validating Service Principal Credentials ==="
+          Write-Host "Key Vault: ${{ env.admin_bicep_kv_fw }}"
+          Write-Host "Expected secret names:"
+          Write-Host "  - common_sp_appid: ${{ env.common_sp_appid_seeding_kv_name }}"
+          Write-Host "  - common_sp_secret: ${{ env.common_sp_secret_seeding_kv_name }}"
+          Write-Host "  - project_sp_oid: ${{ env.project_service_principal_OID_seeding_kv_name }}"
+          
+          $hasError = $false
+          if ([string]::IsNullOrWhiteSpace("${{ env.common_sp_appid_value }}")) {
+            Write-Error "common_sp_appid_value is empty! Secret '${{ env.common_sp_appid_seeding_kv_name }}' not found in Key Vault."
+            $hasError = $true
+          } else {
+            Write-Host "✓ common_sp_appid retrieved (length: $("${{ env.common_sp_appid_value }}".Length))"
+          }
+          
+          if ([string]::IsNullOrWhiteSpace("${{ env.common_sp_secret_value }}")) {
+            Write-Error "common_sp_secret_value is empty! Secret '${{ env.common_sp_secret_seeding_kv_name }}' not found in Key Vault."
+            $hasError = $true
+          } else {
+            Write-Host "✓ common_sp_secret retrieved (length: $("${{ env.common_sp_secret_value }}".Length))"
+          }
+          
+          if ([string]::IsNullOrWhiteSpace("${{ env.project_sp_oid_value }}")) {
+            Write-Error "project_sp_oid_value is empty! Secret '${{ env.project_service_principal_OID_seeding_kv_name }}' not found in Key Vault."
+            $hasError = $true
+          } else {
+            Write-Host "✓ project_sp_oid retrieved (length: $("${{ env.project_sp_oid_value }}".Length))"
+          }
+          
+          if ($hasError) {
+            Write-Host ""
+            Write-Host "TROUBLESHOOTING:"
+            Write-Host "1. Verify the secrets exist in Key Vault '${{ env.admin_bicep_kv_fw }}'"
+            Write-Host "2. Check the secret names match exactly (case-sensitive)"
+            Write-Host "3. Ensure the GitHub Actions identity has 'Get' permission on secrets"
+            Write-Host "4. Run: az keyvault secret list --vault-name ${{ env.admin_bicep_kv_fw }} --query '[].name'"
+            exit 1
+          }
+
       - name: 04_Create_Temporary_JSON_Parameter_Files
         if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
         run: |
