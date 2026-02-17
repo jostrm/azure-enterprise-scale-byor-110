@@ -343,11 +343,12 @@ jobs:
           
           # Normalize IP whitelist: convert "-" placeholder to empty string
           $ipWhitelist = '${{ env.project_IP_whitelist }}'
-          if ($ipWhitelist -eq '-') {
-            Write-Host 'Converting project_IP_whitelist from "-" to empty string'
-            $ipWhitelist = ''
+          if ($ipWhitelist -eq '-' -or $ipWhitelist -eq '<todo_ip>') {
+            Write-Host "Converting project_IP_whitelist from '$ipWhitelist' to empty string"
+            "project_IP_whitelist=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            Write-Host "project_IP_whitelist value: '$ipWhitelist'"
           }
-          "project_IP_whitelist=$ipWhitelist" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
           
           $tagsValue = '${{ env.tags }}'
           $tagsProjectValue = '${{ env.tagsProject }}'
@@ -1082,6 +1083,9 @@ jobs:
           azcliversion: latest
           inlineScript: |
             ADMIN_PASSWORD=$(date +%s | sha256sum | base64 | head -c 32)
+            echo "=== Debug: IP Whitelist value ==="
+            echo "project_IP_whitelist: [${{ env.project_IP_whitelist }}]"
+            
             az account set --subscription "${{ env.dev_test_prod_sub_id }}"
             az deployment sub create \
               --name "esml-p${{ env.project_number_000 }}-${{ env.dev_test_prod }}-${{ env.admin_locationSuffix }}-${{ env.admin_prjResourceSuffix }}${{ env.admin_commonResourceSuffix }}PrjDepl-62-core-infrastructure" \
