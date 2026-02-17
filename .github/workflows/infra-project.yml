@@ -1,4 +1,4 @@
-name: infra-project
+﻿name: infra-project
 
 on:
   workflow_dispatch:
@@ -340,6 +340,15 @@ jobs:
           if (-not $Env:privDnsSubscription_param -or $Env:privDnsSubscription_param -eq '') {
             "privDnsSubscription_param=${{ env.dev_test_prod_sub_id }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
           }
+          
+          # Normalize IP whitelist: convert "-" placeholder to empty string
+          $ipWhitelist = '${{ env.project_IP_whitelist }}'
+          if ($ipWhitelist -eq '-') {
+            Write-Host 'Converting project_IP_whitelist from "-" to empty string'
+            $ipWhitelist = ''
+          }
+          "project_IP_whitelist=$ipWhitelist" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          
           $tagsValue = '${{ env.tags }}'
           $tagsProjectValue = '${{ env.tagsProject }}'
           if (-not $Env:tags) { "tags=$tagsValue" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
