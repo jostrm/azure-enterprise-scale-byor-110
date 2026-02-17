@@ -447,25 +447,29 @@ jobs:
           Write-Host "  - project_sp_oid: ${{ env.PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_OID }}"
           
           $hasError = $false
-          if ([string]::IsNullOrWhiteSpace("${{ env.common_sp_appid_value }}")) {
+          
+          $appId = $Env:common_sp_appid_value
+          if ([string]::IsNullOrWhiteSpace($appId)) {
             Write-Error "common_sp_appid_value is empty! Secret '${{ env.COMMON_SERVICE_PRINCIPAL_KV_S_NAME_APPID }}' not found in Key Vault."
             $hasError = $true
           } else {
-            Write-Host "✓ common_sp_appid retrieved (length: $("${{ env.common_sp_appid_value }}".Length))"
+            Write-Host "✓ common_sp_appid retrieved (length: $($appId.Length))"
           }
           
-          if ([string]::IsNullOrWhiteSpace("${{ env.common_sp_secret_value }}")) {
+          $spSecret = $Env:common_sp_secret_value
+          if ([string]::IsNullOrWhiteSpace($spSecret)) {
             Write-Error "common_sp_secret_value is empty! Secret '${{ env.COMMON_SERVICE_PRINCIPAL_KV_S_NAME_SECRET }}' not found in Key Vault."
             $hasError = $true
           } else {
-            Write-Host "✓ common_sp_secret retrieved (length: $("${{ env.common_sp_secret_value }}".Length))"
+            Write-Host "✓ common_sp_secret retrieved (length: $($spSecret.Length))"
           }
           
-          if ([string]::IsNullOrWhiteSpace("${{ env.project_sp_oid_value }}")) {
+          $spOid = $Env:project_sp_oid_value
+          if ([string]::IsNullOrWhiteSpace($spOid)) {
             Write-Error "project_sp_oid_value is empty! Secret '${{ env.PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_OID }}' not found in Key Vault."
             $hasError = $true
           } else {
-            Write-Host "✓ project_sp_oid retrieved (length: $("${{ env.project_sp_oid_value }}".Length))"
+            Write-Host "✓ project_sp_oid retrieved (length: $($spOid.Length))"
           }
           
           if ($hasError) {
