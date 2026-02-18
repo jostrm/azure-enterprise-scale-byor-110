@@ -1661,49 +1661,185 @@ jobs:
               --parameters skipExistingRoleAssignments="${{ env.skipACRAssignments }}" \
               --debug
 
-      - name: 69-aifoundry-2025-option1
+      - name: 69a-aifoundry-2025-2ndOption-Account
+        if: env.debug_disable_69_aifoundry_2025 != 'true' && env.aiFoundryV2Exists != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
           inlineScript: |
             az account set --subscription "${{ env.dev_test_prod_sub_id }}"
             az deployment sub create \
-              --name "esml-p${{ env.project_number_000 }}-${{ env.dev_test_prod }}-${{ env.admin_locationSuffix }}-${{ env.admin_prjResourceSuffix }}${{ env.admin_commonResourceSuffix }}PrjDepl-69-aifoundry-2025-account-1st" \
+              --name "esml-p${{ env.project_number_000 }}-${{ env.dev_test_prod }}-${{ env.admin_locationSuffix }}-${{ env.admin_prjResourceSuffix }}${{ env.admin_commonResourceSuffix }}PrjDepl-69-aif-a" \
               --subscription "${{ env.dev_test_prod_sub_id }}" \
               --location "${{ env.admin_location }}" \
-              --template-file "azure-enterprise-scale-ml/environment_setup/aifactory/bicep/esml-genai-1/09-ai-foundry-2025-v2.bicep" \
+              --template-file "azure-enterprise-scale-ml/environment_setup/aifactory/bicep/esml-genai-1/09-ai-foundry-2025-v4.bicep" \
               --parameters @"./aifactory/parameters/dynamicNetworkParams.json" \
-              --parameters targetSubscriptionId="${{ env.dev_test_prod_sub_id }}" \
-              --parameters commonResourceGroup_param="${{ env.commonResourceGroup_param }}" \
-              --parameters commonRGNamePrefix="${{ env.admin_aifactoryPrefixRG }}" \
-              --parameters commonResourceName="${{ env.vnetResourceGroupBase }}" \
-              --parameters locationSuffix="${{ env.admin_locationSuffix }}" \
               --parameters env="${{ env.dev_test_prod }}" \
               --parameters projectNumber="${{ env.project_number_000 }}" \
+              --parameters location="${{ env.admin_location }}" \
+              --parameters locationSuffix="${{ env.admin_locationSuffix }}" \
               --parameters commonResourceSuffix="${{ env.admin_commonResourceSuffix }}" \
               --parameters resourceSuffix="${{ env.admin_prjResourceSuffix }}" \
+              --parameters enableAISearch="${{ env.enableAISearch }}" \
+              --parameters enableCosmosDB="${{ env.enableCosmosDB }}" \
+              --parameters deployModel_gpt_X="${{ env.deployModel_gpt_X }}" \
+              --parameters modelGPTXName="${{ env.modelGPTXName }}" \
+              --parameters modelGPTXVersion="${{ env.modelGPTXVersion }}" \
+              --parameters modelGPTXSku="${{ env.modelGPTXSku }}" \
+              --parameters modelGPTXCapacity="${{ env.modelGPTXCapacity }}" \
+              --parameters deployModel_text_embedding_ada_002="${{ env.deployModel_text_embedding_ada_002 }}" \
+              --parameters deployModel_text_embedding_3_large="${{ env.deployModel_text_embedding_3_large }}" \
+              --parameters deployModel_text_embedding_3_small="${{ env.deployModel_text_embedding_3_small }}" \
+              --parameters default_embedding_capacity="${{ env.default_embedding_capacity }}" \
+              --parameters default_gpt_capacity="${{ env.default_gpt_capacity }}" \
+              --parameters deployModel_gpt_4o="${{ env.deployModel_gpt_4o }}" \
+              --parameters default_gpt_4o_version="${{ env.default_gpt_4o_version }}" \
+              --parameters deployModel_gpt_4o_mini="${{ env.deployModel_gpt_4o_mini }}" \
+              --parameters default_gpt_4o_mini_version="${{ env.default_gpt_4o_mini_version }}" \
+              --parameters default_model_sku="${{ env.default_model_sku }}" \
+              --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
+              --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
+              --parameters allowPublicAccessWhenBehindVnet="${{ env.allowPublicAccessWhenBehindVnet }}" \
+              --parameters IPwhiteList="${{ env.project_IP_whitelist }}" \
+              --parameters centralDnsZoneByPolicyInHub="${{ env.centralDnsZoneByPolicyInHub }}" \
+              --parameters vnetNameBase="${{ env.vnetNameBase }}" \
+              --parameters vnetResourceGroup_param="${{ env.vnetResourceGroup_resolved }}" \
+              --parameters vnetNameFull_param="${{ env.vnetNameFull_resolved }}" \
+              --parameters network_env="${{ env.network_env }}" \
+              --parameters common_subnet_name="${{ env.common_subnet_name }}" \
+              --parameters subnetCommon="${{ env.subnetCommon }}" \
+              --parameters privDnsSubscription_param="${{ env.privDnsSubscription_param }}" \
+              --parameters privDnsResourceGroup_param="${{ env.privDnsResourceGroup_param }}" \
+              --parameters commonResourceGroup_param="${{ env.commonResourceGroup_param }}" \
+              --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters aifactorySuffixRG="${{ env.admin_aifactorySuffixRG }}" \
-              --parameters location="${{ env.admin_location }}" \
+              --parameters commonRGNamePrefix="${{ env.admin_aifactoryPrefixRG }}" \
+              --parameters commonResourceName="${{ env.vnetResourceGroupBase }}" \
               --parameters aifactorySalt10char="${{ env.aifactory_salt_random }}" \
               --parameters randomValue="${{ env.deployment_random_value }}" \
               --parameters technicalAdminsObjectID="${{ env.technical_admins_ad_object_id }}" \
               --parameters technicalAdminsEmail="${{ env.technical_admins_email }}" \
               --parameters subscriptionIdDevTestProd="${{ env.dev_test_prod_sub_id }}" \
-              --parameters apiManagementResourceId="${{ env.foundryApiManagementResourceId }}" \
-              --parameters privDnsSubscription_param="${{ env.privDnsSubscription_param }}" \
-              --parameters privDnsResourceGroup_param="${{ env.privDnsResourceGroup_param }}" \
-              --parameters centralDnsZoneByPolicyInHub="${{ env.centralDnsZoneByPolicyInHub }}" \
               --parameters projectPrefix="${{ env.projectPrefix }}" \
               --parameters projectSuffix="${{ env.projectSuffix }}" \
-              --parameters tags='${{ env.tagsProject }}' \
+              --parameters inputKeyvault="${{ env.admin_bicep_kv_fw }}" \
+              --parameters inputKeyvaultResourcegroup="${{ env.admin_bicep_kv_fw_rg }}" \
+              --parameters inputKeyvaultSubscription="${{ env.admin_bicep_input_keyvault_subscription }}" \
+              --parameters projectServicePrincipleOID_SeedingKeyvaultName="${{ env.project_service_principal_OID_seeding_kv_name }}" \
+              --parameters useAdGroups="${{ env.use_ad_groups }}" \
+              --parameters disableAgentNetworkInjection="${{ env.disableAgentNetworkInjection }}" \
+              --parameters enableAIFactoryCreatedDefaultProjectForAIFv2="${{ env.enableAIFactoryCreatedDefaultProjectForAIFv2 }}" \
+              --parameters containerAppsEnvExists="${{ env.containerAppsEnvExists }}" \
+              --parameters enableCaphost="${{ env.enableAFoundryCaphost }}" \
+              --parameters diagnosticSettingLevel="${{ env.diagnosticSettingLevel }}" \
+              --parameters apiManagementResourceId="${{ env.foundryApiManagementResourceId }}" \
+              --parameters foundryV22AccountOnly="true" \
+              --parameters cmk="${{ env.cmk }}" \
+              --parameters cmkKeyName="${{ env.cmkKeyName }}" \
+              --parameters cmkKeyVersion="${{ env.cmkKeyVersion }}" \
+              --parameters addAISearch="${{ env.addAISearch }}" \
+              --parameters enableAIFoundry="${{ env.enableAIFoundry }}" \
+              --parameters aiFoundryV2Exists="${{ env.aiFoundryV2Exists }}" \
+              --parameters aiFoundryV2ProjectExists="${{ env.aiFoundryV2ProjectExists }}" \
+              --parameters useAVMFoundry="false" \
+              --parameters updateAIFoundry="${{ env.updateAIFoundry }}" \
+              --parameters enableDefenderforAISubLevel="${{ env.enableDefenderforAISubLevel }}" \
+              --parameters enableDefenderforAIResourceLevel="${{ env.enableDefenderforAIResourceLevel }}" \
               --parameters addAIFoundry="${{ env.addAIFoundry }}" \
+              --debug
+
+      - name: 69-Rehydrate
+        if: success() && env.debug_disable_69_aifoundry_2025 != 'true' && env.aiFoundryV2Exists != 'true'
+        shell: bash
+        run: |
+          echo "Rehydration takes 2.5 to 5 minutes to allow AI Foundry account to finish..."
+          sleep 15
+
+      - name: 69b-aifoundry-2025-2ndOption-AccountUpdate
+        if: success() && env.debug_disable_69_aifoundry_2025 != 'true'
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az account set --subscription "${{ env.dev_test_prod_sub_id }}"
+            az deployment sub create \
+              --name "esml-p${{ env.project_number_000 }}-${{ env.dev_test_prod }}-${{ env.admin_locationSuffix }}-${{ env.admin_prjResourceSuffix }}${{ env.admin_commonResourceSuffix }}PrjDepl-69-aif-b" \
+              --subscription "${{ env.dev_test_prod_sub_id }}" \
+              --location "${{ env.admin_location }}" \
+              --template-file "azure-enterprise-scale-ml/environment_setup/aifactory/bicep/esml-genai-1/09-ai-foundry-2025-v4.bicep" \
+              --parameters @"./aifactory/parameters/dynamicNetworkParams.json" \
+              --parameters env="${{ env.dev_test_prod }}" \
+              --parameters projectNumber="${{ env.project_number_000 }}" \
+              --parameters location="${{ env.admin_location }}" \
+              --parameters locationSuffix="${{ env.admin_locationSuffix }}" \
+              --parameters commonResourceSuffix="${{ env.admin_commonResourceSuffix }}" \
+              --parameters resourceSuffix="${{ env.admin_prjResourceSuffix }}" \
+              --parameters enableAIFoundry="${{ env.enableAIFoundry }}" \
               --parameters enableAISearch="${{ env.enableAISearch }}" \
-              --parameters enableAISearchSharedPrivateLink="${{ env.enableAISearchSharedPrivateLink }}" \
+              --parameters enableCosmosDB="${{ env.enableCosmosDB }}" \
+              --parameters deployModel_gpt_X="${{ env.deployModel_gpt_X }}" \
+              --parameters modelGPTXName="${{ env.modelGPTXName }}" \
+              --parameters modelGPTXVersion="${{ env.modelGPTXVersion }}" \
+              --parameters modelGPTXSku="${{ env.modelGPTXSku }}" \
+              --parameters modelGPTXCapacity="${{ env.modelGPTXCapacity }}" \
+              --parameters deployModel_text_embedding_ada_002="${{ env.deployModel_text_embedding_ada_002 }}" \
+              --parameters deployModel_text_embedding_3_large="${{ env.deployModel_text_embedding_3_large }}" \
+              --parameters deployModel_text_embedding_3_small="${{ env.deployModel_text_embedding_3_small }}" \
+              --parameters default_embedding_capacity="${{ env.default_embedding_capacity }}" \
+              --parameters default_gpt_capacity="${{ env.default_gpt_capacity }}" \
+              --parameters deployModel_gpt_4o="${{ env.deployModel_gpt_4o }}" \
+              --parameters default_gpt_4o_version="${{ env.default_gpt_4o_version }}" \
+              --parameters deployModel_gpt_4o_mini="${{ env.deployModel_gpt_4o_mini }}" \
+              --parameters default_gpt_4o_mini_version="${{ env.default_gpt_4o_mini_version }}" \
+              --parameters default_model_sku="${{ env.default_model_sku }}" \
+              --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
+              --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
+              --parameters allowPublicAccessWhenBehindVnet="${{ env.allowPublicAccessWhenBehindVnet }}" \
+              --parameters IPwhiteList="${{ env.project_IP_whitelist }}" \
+              --parameters centralDnsZoneByPolicyInHub="${{ env.centralDnsZoneByPolicyInHub }}" \
+              --parameters vnetNameBase="${{ env.vnetNameBase }}" \
+              --parameters vnetResourceGroup_param="${{ env.vnetResourceGroup_resolved }}" \
+              --parameters vnetNameFull_param="${{ env.vnetNameFull_resolved }}" \
+              --parameters network_env="${{ env.network_env }}" \
+              --parameters common_subnet_name="${{ env.common_subnet_name }}" \
+              --parameters subnetCommon="${{ env.subnetCommon }}" \
+              --parameters privDnsSubscription_param="${{ env.privDnsSubscription_param }}" \
+              --parameters privDnsResourceGroup_param="${{ env.privDnsResourceGroup_param }}" \
+              --parameters commonResourceGroup_param="${{ env.commonResourceGroup_param }}" \
+              --parameters tagsProject='${{ env.tagsProject }}' \
+              --parameters aifactorySuffixRG="${{ env.admin_aifactorySuffixRG }}" \
+              --parameters commonRGNamePrefix="${{ env.admin_aifactoryPrefixRG }}" \
+              --parameters commonResourceName="${{ env.vnetResourceGroupBase }}" \
+              --parameters aifactorySalt10char="${{ env.aifactory_salt_random }}" \
+              --parameters randomValue="${{ env.deployment_random_value }}" \
+              --parameters technicalAdminsObjectID="${{ env.technical_admins_ad_object_id }}" \
+              --parameters technicalAdminsEmail="${{ env.technical_admins_email }}" \
+              --parameters subscriptionIdDevTestProd="${{ env.dev_test_prod_sub_id }}" \
+              --parameters projectPrefix="${{ env.projectPrefix }}" \
+              --parameters projectSuffix="${{ env.projectSuffix }}" \
+              --parameters inputKeyvault="${{ env.admin_bicep_kv_fw }}" \
+              --parameters inputKeyvaultResourcegroup="${{ env.admin_bicep_kv_fw_rg }}" \
+              --parameters inputKeyvaultSubscription="${{ env.admin_bicep_input_keyvault_subscription }}" \
+              --parameters projectServicePrincipleOID_SeedingKeyvaultName="${{ env.project_service_principal_OID_seeding_kv_name }}" \
+              --parameters useAdGroups="${{ env.use_ad_groups }}" \
+              --parameters disableAgentNetworkInjection="${{ env.disableAgentNetworkInjection }}" \
+              --parameters enableAIFactoryCreatedDefaultProjectForAIFv2="${{ env.enableAIFactoryCreatedDefaultProjectForAIFv2 }}" \
+              --parameters containerAppsEnvExists="${{ env.containerAppsEnvExists }}" \
+              --parameters enableCaphost="${{ env.enableAFoundryCaphost }}" \
+              --parameters diagnosticSettingLevel="${{ env.diagnosticSettingLevel }}" \
+              --parameters apiManagementResourceId="${{ env.foundryApiManagementResourceId }}" \
+              --parameters foundryV22AccountOnly="false" \
+              --parameters cmk="${{ env.cmk }}" \
+              --parameters cmkKeyName="${{ env.cmkKeyName }}" \
+              --parameters cmkKeyVersion="${{ env.cmkKeyVersion }}" \
+              --parameters addAISearch="${{ env.addAISearch }}" \
+              --parameters useAVMFoundry="false" \
+              --parameters updateAIFoundry="${{ env.updateAIFoundry }}" \
               --parameters aiFoundryV2Exists="${{ env.aiFoundryV2Exists }}" \
               --parameters aiFoundryV2ProjectExists="${{ env.aiFoundryV2ProjectExists }}" \
               --parameters enableDefenderforAISubLevel="${{ env.enableDefenderforAISubLevel }}" \
               --parameters enableDefenderforAIResourceLevel="${{ env.enableDefenderforAIResourceLevel }}" \
-              --debug
+              --parameters addAIFoundry="${{ env.addAIFoundry }}"
 
       - name: Foundry agent (optional)
         if: success() && env.enableAIFoundry == 'true'
