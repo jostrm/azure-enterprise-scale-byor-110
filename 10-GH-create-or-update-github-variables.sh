@@ -318,6 +318,7 @@ repo_level_vars=(
   "ADMIN_AML_CLUSTER_SKU_TEST_PROD_OVERRIDE"
   "ADMIN_AML_COMPUTE_INSTANCE_DEV_SKU_OVERRIDE"
   "ADMIN_AML_COMPUTE_INSTANCE_TEST_PROD_SKU_OVERRIDE"
+  "TAGS"
   "TAGS_PROJECT"
   "SERVICE_SETTING_DEPLOY_PROJECT_VM"
   "DEBUG_DISABLE_VALIDATION_TASKS"
@@ -330,7 +331,13 @@ repo_level_vars=(
 
 # Apply repo-level variables once to reduce environment-level count
 for var_name in "${repo_level_vars[@]}"; do
-  create_or_update_repo_variable "$var_name" "${!var_name}"
+  var_value="${!var_name}"
+  # Strip outer single quotes from TAGS and TAGS_PROJECT
+  if [[ "$var_name" == "TAGS" || "$var_name" == "TAGS_PROJECT" ]]; then
+    var_value="${var_value#\'}"
+    var_value="${var_value%\'}"
+  fi
+  create_or_update_repo_variable "$var_name" "$var_value"
 done
 
 for env in "${selected_environments[@]}"; do
@@ -384,7 +391,6 @@ for env in "${selected_environments[@]}"; do
     create_or_update_variable $env "PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_OID" "$PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_OID"
     create_or_update_variable $env "PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_S" "$PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_S"
     create_or_update_variable $env "PROJECT_IP_WHITELIST" "$PROJECT_IP_WHITELIST"
-    create_or_update_variable $env "TAGS_PROJECT" "$TAGS_PROJECT"
 
     # Misc
     create_or_update_variable $env "RUN_JOB1_NETWORKING" "$RUN_JOB1_NETWORKING"
