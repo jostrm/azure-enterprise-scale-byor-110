@@ -719,7 +719,7 @@ jobs:
               --parameters locationSuffix="${{ env.admin_locationSuffix }}" \
               --parameters vnetNameBase="${{ env.vnetNameBase }}" \
               --parameters commonResourceSuffix="${{ env.admin_commonResourceSuffix }}" \
-              --parameters tags="${{ env.tags }}" \
+              --parameters tags='${{ env.tags }}' \
               --parameters aifactorySuffixRG="${{ env.admin_aifactorySuffixRG }}" \
               --parameters commonRGNamePrefix="${{ env.admin_aifactoryPrefixRG }}" \
               --parameters vnetResourceGroup="${{ env.admin_aifactoryPrefixRG }}${{ env.vnetResourceGroupBase }}-${{ env.admin_locationSuffix }}-${{ env.dev_test_prod }}${{ env.admin_aifactorySuffixRG }}" \
@@ -1072,8 +1072,8 @@ jobs:
               --parameters DEBUG_deployModel_text_embedding_3_large="${{ env.deployModel_text_embedding_3_large }}" \
               --parameters DEBUG_deployModel_text_embedding_3_small="${{ env.deployModel_text_embedding_3_small }}" \
               --parameters DEBUG_deployModel_gpt_4o_mini="${{ env.deployModel_gpt_4o_mini }}" \
-              --parameters tags="${{ env.tags }}" \
-              --parameters tagsProject="${{ env.tagsProject }}" \
+              --parameters tags='${{ env.tags }}' \
+              --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters diagnosticSettingLevel="${{ env.diagnosticSettingLevel }}" \
               --debug
 
@@ -1134,8 +1134,8 @@ jobs:
               --parameters randomValue="${{ env.deployment_random_value }}" \
               --parameters keyvaultSoftDeleteDays="${{ env.admin_keyvaultSoftDeleteDays }}" \
               --parameters aifactorySalt10char="${{ env.aifactory_salt_random }}" \
-              --parameters tags="${{ env.tags }}" \
-              --parameters tagsProject="${{ env.tagsProject }}" \
+              --parameters tags='${{ env.tags }}' \
+              --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
               --parameters allowPublicAccessWhenBehindVnet="${{ env.allowPublicAccessWhenBehindVnet }}" \
@@ -1210,8 +1210,8 @@ jobs:
               --parameters modelGPTXVersion="${{ env.modelGPTXVersion }}" \
               --parameters modelGPTXSku="${{ env.modelGPTXSku }}" \
               --parameters modelGPTXCapacity="${{ env.modelGPTXCapacity }}" \
-              --parameters tags="${{ env.tags }}" \
-              --parameters tagsProject="${{ env.tagsProject }}" \
+              --parameters tags='${{ env.tags }}' \
+              --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
               --parameters projectPrefix="${{ env.projectPrefix }}" \
@@ -1277,8 +1277,8 @@ jobs:
               --parameters enableRedisCache="${{ env.enableRedisCache }}" \
               --parameters enableSQLDatabase="${{ env.enableSQLDatabase }}" \
               --parameters useAdGroups="${{ env.use_groups }}" \
-              --parameters tags="${{ env.tags }}" \
-              --parameters tagsProject="${{ env.tagsProject }}" \
+              --parameters tags='${{ env.tags }}' \
+              --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
               --parameters projectPrefix="${{ env.projectPrefix }}" \
@@ -1352,8 +1352,8 @@ jobs:
               --parameters enableAppInsightsDashboard="${{ env.enableAppInsightsDashboard }}" \
               --parameters aca_a_registry_image="${{ env.aca_a_registry_image }}" \
               --parameters aca_w_registry_image="${{ env.aca_w_registry_image }}" \
-              --parameters tags="${{ env.tags }}" \
-              --parameters tagsProject="${{ env.tagsProject }}" \
+              --parameters tags='${{ env.tags }}' \
+              --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
               --parameters projectPrefix="${{ env.projectPrefix }}" \
@@ -1424,8 +1424,8 @@ jobs:
               --parameters modelGPTXVersion="${{ env.modelGPTXVersion }}" \
               --parameters modelGPTXSku="${{ env.modelGPTXSku }}" \
               --parameters modelGPTXCapacity="${{ env.modelGPTXCapacity }}" \
-              --parameters tags="${{ env.tags }}" \
-              --parameters tagsProject="${{ env.tagsProject }}" \
+              --parameters tags='${{ env.tags }}' \
+              --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
               --parameters allowPublicAccessWhenBehindVnet="${{ env.allowPublicAccessWhenBehindVnet }}" \
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
@@ -1467,8 +1467,8 @@ jobs:
               --parameters technicalAdminsObjectID="${{ env.technical_admins_ad_object_id }}" \
               --parameters technicalAdminsEmail="${{ env.technical_admins_email }}" \
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
-              --parameters tags="${{ env.tags }}" \
-              --parameters tagsProject="${{ env.tagsProject }}" \
+              --parameters tags='${{ env.tags }}' \
+              --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters network_env="${{ env.network_env }}" \
               --parameters vnetNameFull_param="${{ env.vnetNameFull_resolved }}" \
               --parameters vnetNameBase="${{ env.vnetNameBase }}" \
@@ -1537,8 +1537,8 @@ jobs:
               --parameters technicalAdminsObjectID="${{ env.technical_admins_ad_object_id }}" \
               --parameters technicalAdminsEmail="${{ env.technical_admins_email }}" \
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
-              --parameters tags="${{ env.tags }}" \
-              --parameters tagsProject="${{ env.tagsProject }}" \
+              --parameters tags='${{ env.tags }}' \
+              --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters network_env="${{ env.network_env }}" \
               --parameters vnetNameFull_param="${{ env.vnetNameFull_resolved }}" \
               --parameters vnetNameBase="${{ env.vnetNameBase }}" \
@@ -1644,8 +1644,8 @@ jobs:
               --parameters inputKeyvaultSubscription="${{ env.admin_bicep_input_keyvault_subscription }}" \
               --parameters projectServicePrincipleOID_SeedingKeyvaultName="${{ env.project_service_principal_OID_seeding_kv_name }}" \
               --parameters commonLakeNamePrefixMax8chars="${{ env.LAKE_PREFIX }}" \
-              --parameters tags="${{ env.tags }}" \
-              --parameters tagsProject="${{ env.tagsProject }}" \
+              --parameters tags='${{ env.tags }}' \
+              --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters projectPrefix="${{ env.projectPrefix }}" \
               --parameters projectSuffix="${{ env.projectSuffix }}" \
               --parameters dataFactoryExists="${{ env.dataFactoryExists }}" \
@@ -1695,7 +1695,7 @@ jobs:
               --parameters centralDnsZoneByPolicyInHub="${{ env.centralDnsZoneByPolicyInHub }}" \
               --parameters projectPrefix="${{ env.projectPrefix }}" \
               --parameters projectSuffix="${{ env.projectSuffix }}" \
-              --parameters tags="${{ env.tagsProject }}" \
+              --parameters tags='${{ env.tagsProject }}' \
               --parameters addAIFoundry="${{ env.addAIFoundry }}" \
               --parameters enableAISearch="${{ env.enableAISearch }}" \
               --parameters enableAISearchSharedPrivateLink="${{ env.enableAISearchSharedPrivateLink }}" \
