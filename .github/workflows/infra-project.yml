@@ -1721,8 +1721,8 @@ jobs:
             projectNameReplaced="${projectName/prj/project}"
             projectRG="${{ env.admin_aifactoryPrefixRG }}${projectPrefix}${projectNameReplaced}-${locationSuffix}-${envName}${{ env.admin_aifactorySuffixRG }}${projectSuffix}"
             foundry=$(az cognitiveservices account list --subscription "${{ env.dev_test_prod_sub_id }}" --resource-group "$projectRG" --query "[?starts_with(name, 'aif2')].[name,resourceGroup]" -o tsv | head -n1)
-            foundryName=$(echo "$foundry" | awk '{print $1}')
-            foundryRg=$(echo "$foundry" | awk '{print $2}')
+            foundryName=$(echo "$foundry" | cut -f1)
+            foundryRg=$(echo "$foundry" | cut -f2)
             if [ -z "$foundryName" ]; then echo "No Foundry found; skipping agent"; exit 0; fi
             endpoint=$(az cognitiveservices account show --name "$foundryName" --resource-group "$foundryRg" --query properties.endpoint -o tsv)
             access_token=$(az account get-access-token --resource https://cognitiveservices.azure.com/ --query accessToken -o tsv)
