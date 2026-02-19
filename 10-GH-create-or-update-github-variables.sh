@@ -20,7 +20,7 @@ fi
 if [ -f .env ]; then
   set -o allexport
   source .env
-  set -o allexport -
+  set +o allexport
 else
   echo "Error: .env file not found."
   exit 1
@@ -216,6 +216,7 @@ service_and_byo_vars=(
   "ACA_W_REGISTRY_IMAGE"
 
   "FOUNDRY_API_MANAGEMENT_RESOURCE_ID"
+  "BYO_CONTRIBUTOR_ROLE_ID"
 
 
   # Low priority: run all ADD_* last

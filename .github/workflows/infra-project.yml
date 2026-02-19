@@ -1700,6 +1700,7 @@ jobs:
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
               --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
               --parameters allowPublicAccessWhenBehindVnet="${{ env.allowPublicAccessWhenBehindVnet }}" \
+              --parameters contributorRoleId="${{ env.BYO_CONTRIBUTOR_ROLE_ID }}" \
               --parameters IPwhiteList="${{ env.project_IP_whitelist }}" \
               --parameters centralDnsZoneByPolicyInHub="${{ env.centralDnsZoneByPolicyInHub }}" \
               --parameters vnetNameBase="${{ env.vnetNameBase }}" \
@@ -1795,6 +1796,7 @@ jobs:
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
               --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
               --parameters allowPublicAccessWhenBehindVnet="${{ env.allowPublicAccessWhenBehindVnet }}" \
+              --parameters contributorRoleId="${{ env.BYO_CONTRIBUTOR_ROLE_ID }}" \
               --parameters IPwhiteList="${{ env.project_IP_whitelist }}" \
               --parameters centralDnsZoneByPolicyInHub="${{ env.centralDnsZoneByPolicyInHub }}" \
               --parameters vnetNameBase="${{ env.vnetNameBase }}" \
