@@ -976,16 +976,21 @@ jobs:
             echo "Target resource group: $targetRG"
             delete_all="${{ env.deleteAllServicesForProject }}"
 
+            # Never deleted regardless of flags: RG itself, KeyVault, Storage Accounts, Application Insights.
+            # Those are intentionally absent from the list below.
+
             delete_resource() {
               local rtype="$1" rname="$2" rg="$3"
               echo "Deleting $rtype '$rname' in $rg ..."
               az resource delete --resource-group "$rg" --name "$rname" --resource-type "$rtype" --no-wait 2>/dev/null || true
             }
 
+            # delete_all=true  → always attempt deletion (live query decides if resource exists).
+            # delete_all=false → only delete if service is explicitly disabled AND not known absent.
             should_delete() {
               local enabled="$1" exists="$2"
-              if [ "$exists" != "true" ]; then return 1; fi
               if [ "$delete_all" == "true" ]; then return 0; fi
+              if [ "$exists" == "false" ]; then return 1; fi
               if [ "$enabled" == "false" ] || [ "$enabled" == "'false'" ]; then return 0; fi
               return 1
             }
@@ -1047,10 +1052,22 @@ jobs:
               ehNs=$(az eventhubs namespace list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
               [ -n "$ehNs" ] && delete_resource "Microsoft.EventHub/namespaces" "$ehNs" "$targetRG"
             fi
+            if should_delete "${{ env.enableAzureMachineLearning }}" "${{ env.amlExists }}"; then
+              amlName=$(az ml workspace list --resource-group "$targetRG" --query "[?kind=='Default'].name" -o tsv 2>/dev/null | head -n1)
+              [ -n "$amlName" ] && delete_resource "Microsoft.MachineLearningServices/workspaces" "$amlName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableAIServices }}" "${{ env.aiServicesExists }}"; then
+              aiSvcName=$(az cognitiveservices account list --resource-group "$targetRG" --query "[?kind=='CognitiveServices' || kind=='AIServices'].name" -o tsv 2>/dev/null | head -n1)
+              [ -n "$aiSvcName" ] && delete_resource "Microsoft.CognitiveServices/accounts" "$aiSvcName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableAksForAzureML }}" "${{ env.aksExists }}"; then
+              aksName=$(az aks list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$aksName" ] && delete_resource "Microsoft.ContainerService/managedClusters" "$aksName" "$targetRG"
+            fi
             echo "18_Delete_Service_If_Not_Enabled_And_Exists completed."
 
       - name: 18_Purge_Soft_Deleted
-        if: env.enableDeleteForDisabledResources == 'true' && (env.aiFoundryV2Exists == 'true' || env.amlExists == 'true' || env.aiHubExists == 'true')
+        if: env.enableDeleteForDisabledResources == 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
