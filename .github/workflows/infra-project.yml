@@ -984,8 +984,38 @@ jobs:
               echo "Deleting $rtype '$rname' in $rg ..."
               case "$rtype" in
                 Microsoft.CognitiveServices/accounts)
+                  # Delete nested Foundry projects first (if any)
+                  subId=$(az account show --query id -o tsv)
+                  projectNames=$(az rest --method GET \
+                    --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects?api-version=2025-01-01-preview" \
+                    --query "value[].name" -o tsv 2>/dev/null || echo "")
+                  if [ -n "$projectNames" ]; then
+                    while IFS= read -r proj; do
+                      echo "  Deleting nested project '$proj' under account '$rname' ..."
+                      az rest --method DELETE \
+                        --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects/${proj}?api-version=2025-01-01-preview" \
+                        || echo "WARN: failed to delete project $proj"
+                    done <<< "$projectNames"
+                    echo "  Waiting 30s for project deletions to propagate..."
+                    sleep 30
+                  fi
                   az cognitiveservices account delete --resource-group "$rg" --name "$rname" || echo "WARN: failed to delete $rname" ;;
                 Microsoft.Search/searchServices)
+                  # Delete shared private link resources first (blocks deletion if present)
+                  subId=$(az account show --query id -o tsv)
+                  splNames=$(az rest --method GET \
+                    --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.Search/searchServices/${rname}/sharedPrivateLinkResources?api-version=2023-11-01" \
+                    --query "value[].name" -o tsv 2>/dev/null || echo "")
+                  if [ -n "$splNames" ]; then
+                    while IFS= read -r spl; do
+                      echo "  Deleting shared private link '$spl' under search service '$rname' ..."
+                      az rest --method DELETE \
+                        --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.Search/searchServices/${rname}/sharedPrivateLinkResources/${spl}?api-version=2023-11-01" \
+                        || echo "WARN: failed to delete SPL $spl"
+                    done <<< "$splNames"
+                    echo "  Waiting 30s for SPL deletions to propagate..."
+                    sleep 30
+                  fi
                   az search service delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
                 Microsoft.MachineLearningServices/workspaces)
                   az ml workspace delete --resource-group "$rg" --name "$rname" --yes --no-wait || echo "WARN: failed to delete $rname" ;;
@@ -1088,7 +1118,8 @@ jobs:
               [ -n "$amlName" ] && delete_resource "Microsoft.MachineLearningServices/workspaces" "$amlName" "$targetRG"
             fi
             if should_delete "${{ env.enableAIServices }}" "${{ env.aiServicesExists }}"; then
-              aiSvcName=$(az cognitiveservices account list --resource-group "$targetRG" --query "[?kind=='CognitiveServices' || kind=='AIServices'].name" -o tsv 2>/dev/null | head -n1)
+              # Filter by name prefix 'aiservices' to avoid matching AI Foundry V2 accounts (prefix 'aif2')
+              aiSvcName=$(az cognitiveservices account list --resource-group "$targetRG" --query "[?starts_with(name, 'aiservices')].name" -o tsv 2>/dev/null | head -n1)
               [ -n "$aiSvcName" ] && delete_resource "Microsoft.CognitiveServices/accounts" "$aiSvcName" "$targetRG"
             fi
             if should_delete "${{ env.enableAksForAzureML }}" "${{ env.aksExists }}"; then
