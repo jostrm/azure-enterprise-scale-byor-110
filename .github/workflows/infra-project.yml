@@ -1049,9 +1049,79 @@ jobs:
             fi
             echo "18_Delete_Service_If_Not_Enabled_And_Exists completed."
 
+      - name: 18_Purge_Soft_Deleted
+        if: env.enableDeleteForDisabledResources == 'true' && (env.aiFoundryV2Exists == 'true' || env.amlExists == 'true' || env.aiHubExists == 'true')
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            set -e
+            az account set --subscription "${{ env.dev_test_prod_sub_id }}"
+            echo "Waiting 5 minutes for soft-delete to process before purging..."
+            sleep 300
+            projectNumber="${{ env.project_number_000 }}"
+            projectName="prj${projectNumber}"
+            envName="${{ env.dev_test_prod }}"
+            locationSuffix="${{ env.admin_locationSuffix }}"
+            projectPrefix="${{ env.projectPrefix }}"
+            projectSuffix="${{ env.projectSuffix }}"
+            location="${{ env.admin_location }}"
+            projectNameReplaced="${projectName/prj/project}"
+            targetRG="${{ env.admin_aifactoryPrefixRG }}${projectPrefix}${projectNameReplaced}-${locationSuffix}-${envName}${{ env.admin_aifactorySuffixRG }}${projectSuffix}"
+            echo "Target RG for purge: $targetRG"
+
+            # Purge soft-deleted AI Foundry / AI Hub (Cognitive Services) accounts
+            if [[ "${{ env.aiFoundryV2Exists }}" == "true" || "${{ env.aiHubExists }}" == "true" ]]; then
+              echo "Scanning for soft-deleted Cognitive Services accounts in $targetRG..."
+              deletedAccounts=$(az cognitiveservices account list-deleted \
+                --query "[?resourceGroup=='${targetRG}'].name" \
+                -o tsv 2>/dev/null || echo "")
+              if [ -n "$deletedAccounts" ]; then
+                while IFS= read -r accountName; do
+                  echo "Purging soft-deleted Cognitive Services account: $accountName"
+                  if ! az cognitiveservices account purge \
+                    --location "$location" \
+                    --resource-group "$targetRG" \
+                    --name "$accountName"; then
+                    echo "ERROR: Failed to purge Cognitive Services account '$accountName'" >&2
+                    exit 1
+                  fi
+                done <<< "$deletedAccounts"
+              else
+                echo "No soft-deleted Cognitive Services accounts found in $targetRG."
+              fi
+            fi
+
+            # Purge soft-deleted AML workspaces via REST API
+            if [[ "${{ env.amlExists }}" == "true" ]]; then
+              echo "Scanning for soft-deleted AML workspaces in $targetRG..."
+              subId="${{ env.dev_test_prod_sub_id }}"
+              deletedWorkspaces=$(az rest \
+                --method GET \
+                --url "https://management.azure.com/subscriptions/${subId}/providers/Microsoft.MachineLearningServices/locations/${location}/deletedWorkspaces?api-version=2024-04-01" \
+                --query "value[?resourceGroup=='${targetRG}'].name" \
+                -o tsv 2>/dev/null || echo "")
+              if [ -n "$deletedWorkspaces" ]; then
+                while IFS= read -r wsName; do
+                  echo "Purging soft-deleted AML workspace: $wsName"
+                  if ! az rest \
+                    --method DELETE \
+                    --url "https://management.azure.com/subscriptions/${subId}/providers/Microsoft.MachineLearningServices/locations/${location}/deletedWorkspaces/${wsName}?api-version=2024-04-01"; then
+                    echo "ERROR: Failed to purge AML workspace '$wsName'" >&2
+                    exit 1
+                  fi
+                done <<< "$deletedWorkspaces"
+              else
+                echo "No soft-deleted AML workspaces found in $targetRG."
+              fi
+            fi
+
+            echo "18_Purge_Soft_Deleted completed."
+
       # === Deploy sequences ===
 
       - name: 61-foundation
+        if: env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1177,6 +1247,7 @@ jobs:
               --debug
 
       - name: 62-core-infrastructure
+        if: env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1250,6 +1321,7 @@ jobs:
               --debug
 
       - name: 63-cognitive-services
+        if: env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1329,6 +1401,7 @@ jobs:
               --debug
 
       - name: 64-databases
+        if: env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1390,6 +1463,7 @@ jobs:
               --debug
 
       - name: 65-compute-services
+        if: env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1465,6 +1539,7 @@ jobs:
               --debug
 
       - name: 66-ai-platform
+        if: env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1542,6 +1617,7 @@ jobs:
               --debug
 
       - name: 67-data_ml_platform
+        if: env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1612,6 +1688,7 @@ jobs:
               --parameters cmkKeyName="${{ env.cmkKeyName }}"
 
       - name: 68-integration
+        if: env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1668,6 +1745,7 @@ jobs:
               --parameters diagnosticSettingLevel="${{ env.diagnosticSettingLevel }}"
 
       - name: 99_check_acr_role_assignments
+        if: env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1682,6 +1760,7 @@ jobs:
             if [ -n "$assignments" ]; then echo "skipACRAssignments=true" >> $GITHUB_ENV; else echo "skipACRAssignments=false" >> $GITHUB_ENV; fi
 
       - name: 100-rbac-security
+        if: env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1762,7 +1841,7 @@ jobs:
               --debug
 
       - name: 69a-aifoundry-2025-2ndOption-Account
-        if: env.debug_disable_69_aifoundry_2025 != 'true' && env.aiFoundryV2Exists != 'true'
+        if: env.deleteAllServicesForProject != 'true' && env.debug_disable_69_aifoundry_2025 != 'true' && env.aiFoundryV2Exists != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1850,14 +1929,14 @@ jobs:
               --debug
 
       - name: 69-Rehydrate
-        if: success() && env.debug_disable_69_aifoundry_2025 != 'true' && env.aiFoundryV2Exists != 'true'
+        if: success() && env.deleteAllServicesForProject != 'true' && env.debug_disable_69_aifoundry_2025 != 'true' && env.aiFoundryV2Exists != 'true'
         shell: bash
         run: |
           echo "Rehydration takes 2.5 to 5 minutes to allow AI Foundry account to finish..."
           sleep 15
 
       - name: 69b-aifoundry-2025-2ndOption-AccountUpdate
-        if: success() && env.debug_disable_69_aifoundry_2025 != 'true'
+        if: success() && env.deleteAllServicesForProject != 'true' && env.debug_disable_69_aifoundry_2025 != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -1944,7 +2023,7 @@ jobs:
               --parameters addAIFoundry="${{ env.addAIFoundry }}"
 
       - name: Foundry agent (optional)
-        if: success() && env.enableAIFoundry == 'true'
+        if: success() && env.deleteAllServicesForProject != 'true' && env.enableAIFoundry == 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
