@@ -982,7 +982,38 @@ jobs:
             delete_resource() {
               local rtype="$1" rname="$2" rg="$3"
               echo "Deleting $rtype '$rname' in $rg ..."
-              az resource delete --resource-group "$rg" --name "$rname" --resource-type "$rtype" --no-wait 2>/dev/null || true
+              case "$rtype" in
+                Microsoft.CognitiveServices/accounts)
+                  az cognitiveservices account delete --resource-group "$rg" --name "$rname" || echo "WARN: failed to delete $rname" ;;
+                Microsoft.Search/searchServices)
+                  az search service delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
+                Microsoft.MachineLearningServices/workspaces)
+                  az ml workspace delete --resource-group "$rg" --name "$rname" --yes --no-wait || echo "WARN: failed to delete $rname" ;;
+                Microsoft.App/containerApps)
+                  az containerapp delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
+                Microsoft.App/managedEnvironments)
+                  az containerapp env delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
+                Microsoft.ContainerService/managedClusters)
+                  az aks delete --resource-group "$rg" --name "$rname" --yes --no-wait || echo "WARN: failed to delete $rname" ;;
+                Microsoft.DataFactory/factories)
+                  az datafactory delete --resource-group "$rg" --factory-name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
+                Microsoft.DocumentDB/databaseAccounts)
+                  az cosmosdb delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
+                Microsoft.DBforPostgreSQL/flexibleServers)
+                  az postgres flexible-server delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
+                Microsoft.Cache/Redis)
+                  az redis delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
+                Microsoft.Web/sites)
+                  az webapp delete --resource-group "$rg" --name "$rname" || echo "WARN: failed to delete $rname" ;;
+                Microsoft.Databricks/workspaces)
+                  az databricks workspace delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
+                Microsoft.Logic/workflows)
+                  az logicapp delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
+                Microsoft.EventHub/namespaces)
+                  az eventhubs namespace delete --resource-group "$rg" --namespace-name "$rname" || echo "WARN: failed to delete $rname" ;;
+                *)
+                  az resource delete --resource-group "$rg" --name "$rname" --resource-type "$rtype" || echo "WARN: failed to delete $rname" ;;
+              esac
             }
 
             # delete_all=true  → always attempt deletion (live query decides if resource exists).
