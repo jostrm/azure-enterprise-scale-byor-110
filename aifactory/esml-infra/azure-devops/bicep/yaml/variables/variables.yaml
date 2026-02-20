@@ -113,6 +113,7 @@ variables:
   # ============================================================================
   # MANDATORY(CHANGE RARELY):RBAC restrictions
   # ============================================================================
+  BYOContributorRoleID: "b24988ac-6180-42a0-ab88-20f7382dd24c" # Built-in Contributor role ID. Change to use a custom role for finer-grained access control.
   disableContributorAccessForUsers: "false"
   disableRBACAdminOnRGForUsers: "false"
   # ============================================================================
@@ -219,6 +220,10 @@ variables:
   # - Services: enableAIFoundryHub, enableAISearch, serviceSettingDeployFunction, serviceSettingDeployContainerApps, serviceSettingDeployAppInsightsDashboard, serviceSettingDeployCosmosDB
   # - Networking (IPwhitelist UX access + private endpoints service-service):   enablePublicGenAIAccess, allowPublicAccessWhenBehindVnet
   # ============================================================================
+  
+  # === Complete mode vs Incremental mode ===
+  enableDeleteForDisabledResources: true
+  deleteAllServicesForProject: true # true, delete all services in the project resource group, except foundational services such as Keyvault, Storage, AppInsights. false, only delete services that are set to false in the variables. Note! if true, and enableDeleteForDisabledResources is false, services that are set to false in the variables will not be re-created.
   
   # === Defender for Cloud: Defender for AI ===
   enableDefenderforAISubLevel: "false"

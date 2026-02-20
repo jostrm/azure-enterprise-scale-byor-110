@@ -179,8 +179,13 @@ jobs:
       updateRbac: ${{ vars.UPDATE_RBAC || 'false' }}
       disableContributorAccessForUsers: ${{ vars.DISABLE_CONTRIBUTOR_ACCESS_FOR_USERS || 'false' }}
       disableRBACAdminOnRGForUsers: ${{ vars.DISABLE_RBAC_ADMIN_ON_RG_FOR_USERS || 'false' }}
+      BYO_CONTRIBUTOR_ROLE_ID: ${{ vars.BYO_CONTRIBUTOR_ROLE_ID || 'b24988ac-6180-42a0-ab88-20f7382dd24c' }}
       enableDefenderforAISubLevel: ${{ vars.ENABLE_DEFENDER_FOR_AI_SUB_LEVEL || 'false' }}
       enableDefenderforAIResourceLevel: ${{ vars.ENABLE_DEFENDER_FOR_AI_RESOURCE_LEVEL || 'false' }}
+
+      # Complete mode vs Incremental mode
+      enableDeleteForDisabledResources: ${{ vars.ENABLE_DELETE_FOR_DISABLED_RESOURCES || 'true' }}
+      deleteAllServicesForProject: ${{ vars.DELETE_ALL_SERVICES_FOR_PROJECT || 'true' }}
 
       # DNS zone existence flags (for parity with ADO debug params)
       zoneAzurecontainerappsExists: ${{ vars.ZONE_AZURECONTAINERAPPS_EXISTS || 'false' }}
@@ -950,6 +955,100 @@ jobs:
               echo "aifactory_salt_random=$salt" >> $GITHUB_ENV
             fi
 
+      - name: 18_Delete_Service_If_Not_Enabled_And_Exists
+        if: env.enableDeleteForDisabledResources == 'true'
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az account set --subscription "${{ env.dev_test_prod_sub_id }}"
+            commonRGNamePrefix="${{ env.admin_aifactoryPrefixRG }}"
+            projectNumber="${{ env.project_number_000 }}"
+            projectName="prj${projectNumber}"
+            locationSuffix="${{ env.admin_locationSuffix }}"
+            envName="${{ env.dev_test_prod }}"
+            aifactorySuffixRG="${{ env.admin_aifactorySuffixRG }}"
+            projectPrefix="${{ env.projectPrefix }}"
+            projectSuffix="${{ env.projectSuffix }}"
+            projectNameReplaced="${projectName/prj/project}"
+            targetRG="${commonRGNamePrefix}${projectPrefix}${projectNameReplaced}-${locationSuffix}-${envName}${aifactorySuffixRG}${projectSuffix}"
+
+            echo "Target resource group: $targetRG"
+            delete_all="${{ env.deleteAllServicesForProject }}"
+
+            delete_resource() {
+              local rtype="$1" rname="$2" rg="$3"
+              echo "Deleting $rtype '$rname' in $rg ..."
+              az resource delete --resource-group "$rg" --name "$rname" --resource-type "$rtype" --no-wait 2>/dev/null || true
+            }
+
+            should_delete() {
+              local enabled="$1" exists="$2"
+              if [ "$exists" != "true" ]; then return 1; fi
+              if [ "$delete_all" == "true" ]; then return 0; fi
+              if [ "$enabled" == "false" ] || [ "$enabled" == "'false'" ]; then return 0; fi
+              return 1
+            }
+
+            if should_delete "${{ env.enableAIFoundryHub }}" "${{ env.aiHubExists }}"; then
+              hubName=$(az ml workspace list --resource-group "$targetRG" --query "[?kind=='hub'].name" -o tsv 2>/dev/null | head -n1)
+              [ -n "$hubName" ] && delete_resource "Microsoft.MachineLearningServices/workspaces" "$hubName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableAIFoundry }}" "${{ env.aiFoundryV2Exists }}"; then
+              fdryName=$(az cognitiveservices account list --resource-group "$targetRG" --query "[?kind=='AIServices'].name" -o tsv 2>/dev/null | head -n1)
+              [ -n "$fdryName" ] && delete_resource "Microsoft.CognitiveServices/accounts" "$fdryName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableAISearch }}" "${{ env.aiSearchExists }}"; then
+              srchName=$(az search service list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$srchName" ] && delete_resource "Microsoft.Search/searchServices" "$srchName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableAzureOpenAI }}" "${{ env.openaiExists }}"; then
+              openaiName=$(az cognitiveservices account list --resource-group "$targetRG" --query "[?kind=='OpenAI'].name" -o tsv 2>/dev/null | head -n1)
+              [ -n "$openaiName" ] && delete_resource "Microsoft.CognitiveServices/accounts" "$openaiName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableContainerApps }}" "${{ env.containerAppAExists }}"; then
+              az containerapp list --resource-group "$targetRG" --query "[].name" -o tsv 2>/dev/null | while read -r name; do
+                [ -n "$name" ] && delete_resource "Microsoft.App/containerApps" "$name" "$targetRG"
+              done
+            fi
+            if should_delete "${{ env.enableCosmosDB }}" "${{ env.cosmosDBExists }}"; then
+              cosmosName=$(az cosmosdb list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$cosmosName" ] && delete_resource "Microsoft.DocumentDB/databaseAccounts" "$cosmosName" "$targetRG"
+            fi
+            if should_delete "${{ env.enablePostgreSQL }}" "${{ env.postgreSQLExists }}"; then
+              pgName=$(az postgres flexible-server list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$pgName" ] && delete_resource "Microsoft.DBforPostgreSQL/flexibleServers" "$pgName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableRedisCache }}" "${{ env.redisExists }}"; then
+              redisName=$(az redis list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$redisName" ] && delete_resource "Microsoft.Cache/Redis" "$redisName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableFunction }}" "${{ env.functionAppExists }}"; then
+              funcName=$(az functionapp list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$funcName" ] && delete_resource "Microsoft.Web/sites" "$funcName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableWebApp }}" "${{ env.webAppExists }}"; then
+              webName=$(az webapp list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$webName" ] && delete_resource "Microsoft.Web/sites" "$webName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableDatabricks }}" "${{ env.databricksExists }}"; then
+              dbwName=$(az databricks workspace list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$dbwName" ] && delete_resource "Microsoft.Databricks/workspaces" "$dbwName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableDatafactory }}" "${{ env.dataFactoryExists }}"; then
+              adfName=$(az datafactory list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$adfName" ] && delete_resource "Microsoft.DataFactory/factories" "$adfName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableLogicApps }}" "${{ env.logicAppsExists }}"; then
+              laName=$(az logicapp list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$laName" ] && delete_resource "Microsoft.Logic/workflows" "$laName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableEventHubs }}" "${{ env.eventHubsExists }}"; then
+              ehNs=$(az eventhubs namespace list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$ehNs" ] && delete_resource "Microsoft.EventHub/namespaces" "$ehNs" "$targetRG"
+            fi
+            echo "18_Delete_Service_If_Not_Enabled_And_Exists completed."
+
       # === Deploy sequences ===
 
       - name: 61-foundation
@@ -1659,6 +1758,7 @@ jobs:
               --parameters diagnosticSettingLevel="${{ env.diagnosticSettingLevel }}" \
               --parameters addAISearch="${{ env.addAISearch }}" \
               --parameters skipExistingRoleAssignments="${{ env.skipACRAssignments }}" \
+              --parameters contributorRoleId="${{ env.BYO_CONTRIBUTOR_ROLE_ID }}" \
               --debug
 
       - name: 69a-aifoundry-2025-2ndOption-Account

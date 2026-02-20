@@ -40,7 +40,7 @@ rate_limit_pause_after=50
 rate_limit_pause_after_2=85
 rate_limit_sleep_seconds=30
 rate_limit_sleep_seconds_2=30
-start_from_op=1
+start_from_op=1  # QUICK UPDATE TIP: Run script once and note operation number at "QUICK UPDATE SECTION" message, then set this to that number
 run_current_op=true
 
 increment_counter() {
@@ -136,6 +136,7 @@ esac
 
 # Prompt for optional resume position
 echo -e "${YELLOW}Optional: resume from operation number (1-based). Leave empty to start from 1.${NC}"
+echo -e "${YELLOW}TIP: Set to 82 to update Project number and ENABLE_ flags.${NC}"
 read -p "start_from_op: " start_from_input
 if [[ -n "$start_from_input" && "$start_from_input" =~ ^[0-9]+$ ]]; then
   start_from_op=$start_from_input
@@ -216,7 +217,6 @@ service_and_byo_vars=(
   "ACA_W_REGISTRY_IMAGE"
 
   "FOUNDRY_API_MANAGEMENT_RESOURCE_ID"
-  "BYO_CONTRIBUTOR_ROLE_ID"
 
 
   # Low priority: run all ADD_* last
@@ -270,6 +270,11 @@ repo_level_vars=(
   "ACR_ADMIN_USER_ENABLED"
   "ACR_DEDICATED"
   "ACR_SKU"
+  # === RBAC: Contributor role override ===
+  "BYO_CONTRIBUTOR_ROLE_ID"
+  # === Complete mode vs Incremental mode ===
+  "ENABLE_DELETE_FOR_DISABLED_RESOURCES"
+  "DELETE_ALL_SERVICES_FOR_PROJECT"
   # All ENABLE_* flags moved to repo-level
   "ENABLE_AI_SERVICES"
   "ENABLE_AI_FOUNDRY_HUB"
@@ -320,7 +325,6 @@ repo_level_vars=(
   "ADMIN_AML_COMPUTE_INSTANCE_DEV_SKU_OVERRIDE"
   "ADMIN_AML_COMPUTE_INSTANCE_TEST_PROD_SKU_OVERRIDE"
   "TAGS"
-  "TAGS_PROJECT"
   "SERVICE_SETTING_DEPLOY_PROJECT_VM"
   "DEBUG_DISABLE_VALIDATION_TASKS"
   "ADMIN_AI_SEARCH_TIER"
@@ -331,6 +335,20 @@ repo_level_vars=(
 )
 
 # Apply repo-level variables once to reduce environment-level count
+echo -e "${GREEN}================================================${NC}"
+echo -e "${GREEN}GitHub Variables Update Script${NC}"
+echo -e "${GREEN}================================================${NC}"
+echo -e "${YELLOW}TIP: To quickly update frequently-changed variables only:${NC}"
+echo -e "${YELLOW}  - Edit this script and set start_from_op to the appropriate number${NC}"
+echo -e "${YELLOW}  - Frequently updated variables are processed LAST in each environment:${NC}"
+echo -e "${YELLOW}    • PROJECT_NUMBER, PROJECT_MEMBERS, PROJECT_MEMBERS_EMAILS${NC}"
+echo -e "${YELLOW}    • PROJECT_IP_WHITELIST, PROJECT_MEMBERS_IP_ADDRESS${NC}"
+echo -e "${YELLOW}    • TAGS_PROJECT${NC}"
+echo -e "${YELLOW}    • All ENABLE_* flags${NC}"
+echo -e "${YELLOW}  - Watch the [operation_number] output to find the right start_from_op${NC}"
+echo -e "${GREEN}================================================${NC}"
+echo ""
+
 for var_name in "${repo_level_vars[@]}"; do
   var_value="${!var_name}"
   # Strip outer single quotes from TAGS and TAGS_PROJECT
@@ -385,13 +403,10 @@ for env in "${selected_environments[@]}"; do
     create_or_update_variable $env "AIFACTORY_LOCATION_SHORT" "$AIFACTORY_LOCATION_SHORT"
     
     # Project specific settings, for all environments
-    create_or_update_variable $env "PROJECT_MEMBERS_EMAILS" "$PROJECT_MEMBERS_EMAILS"
     create_or_update_variable $env "PROJECT_TYPE" "$PROJECT_TYPE"
-    create_or_update_variable $env "PROJECT_NUMBER" "$PROJECT_NUMBER"
     create_or_update_variable $env "PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_APPID" "$PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_APPID"
     create_or_update_variable $env "PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_OID" "$PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_OID"
     create_or_update_variable $env "PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_S" "$PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_S"
-    create_or_update_variable $env "PROJECT_IP_WHITELIST" "$PROJECT_IP_WHITELIST"
 
     # Misc
     create_or_update_variable $env "RUN_JOB1_NETWORKING" "$RUN_JOB1_NETWORKING"
@@ -400,8 +415,6 @@ for env in "${selected_environments[@]}"; do
     create_or_update_secret $env "AIFACTORY_SEEDING_KEYVAULT_SUBSCRIPTION_ID" "$AIFACTORY_SEEDING_KEYVAULT_SUBSCRIPTION_ID"
     
     # Project Specifics (1st project bootstrap): 
-    create_or_update_secret $env "PROJECT_MEMBERS" "$PROJECT_MEMBERS"
-    create_or_update_secret $env "PROJECT_MEMBERS_IP_ADDRESS" "$PROJECT_MEMBERS_IP_ADDRESS"
     create_or_update_secret $env "TENANT_ID" "$TENANT_ID"
     # Variables: 
     create_or_update_variable $env "BYO_SUBNETS" "$BYO_SUBNETS"
@@ -410,7 +423,21 @@ for env in "${selected_environments[@]}"; do
     create_or_update_variable $env "AIFACTORY_SALT" "$AIFACTORY_SALT"
     create_or_update_variable $env "AIFACTORY_SALT_RANDOM" "$AIFACTORY_SALT_RANDOM"
 
-    # v1.23+ enable flags + BYO customization variables
+    # ========================================================================
+    # FREQUENTLY UPDATED VARIABLES - Positioned last for quick start_from_op
+    # ========================================================================
+    echo -e "${GREEN}>>> QUICK UPDATE SECTION for $env - Note the operation number above! <<<${NC}"
+    # Project-specific variables (moved to end for quick updates)
+    create_or_update_variable $env "PROJECT_NUMBER" "$PROJECT_NUMBER"
+    create_or_update_variable $env "PROJECT_MEMBERS_EMAILS" "$PROJECT_MEMBERS_EMAILS"
+    create_or_update_variable $env "PROJECT_IP_WHITELIST" "$PROJECT_IP_WHITELIST"
+    create_or_update_variable $env "TAGS_PROJECT" "$TAGS_PROJECT"
+    
+    # Project member secrets
+    create_or_update_secret $env "PROJECT_MEMBERS" "$PROJECT_MEMBERS"
+    create_or_update_secret $env "PROJECT_MEMBERS_IP_ADDRESS" "$PROJECT_MEMBERS_IP_ADDRESS"
+
+    # v1.23+ enable flags + BYO customization variables (includes all ENABLE_* flags)
     for var_name in "${service_and_byo_vars[@]}"; do
       create_or_update_variable "$env" "$var_name" "${!var_name}"
     done
