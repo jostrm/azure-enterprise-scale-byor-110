@@ -911,25 +911,30 @@ jobs:
             miPrjPrefix="mi-${projectName}-${locationSuffix}-${envName}"
             storageAccount1001Name="sa${projectName}${locationSuffix}"
             storageAccount2001Name="sa${projectName}${locationSuffix}"
-            echo "aiHubExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aiHubName" "$suffixStandard")" >> $GITHUB_ENV
-            echo "aifProjectExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aifProjectName" "$suffixStandard")" >> $GITHUB_ENV
-            echo "aiFoundryV2Exists=$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts" "$aiFoundryV2Name" "")" >> $GITHUB_ENV
-            echo "aiFoundryV2ProjectExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts/projects" "$aiFoundryV2ProjectName" "")" >> $GITHUB_ENV
-            echo "dataFactoryExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.DataFactory/factories" "$dataFactoryName" "$suffixStandard")" >> $GITHUB_ENV
-            echo "botServiceExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.BotService/botServices" "$botServiceName" "$suffixStandard")" >> $GITHUB_ENV
-            echo "aksExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.ContainerService/managedClusters" "$aksName" "$suffixStandard")" >> $GITHUB_ENV
-            echo "amlExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$amlName" "$suffixStandard")" >> $GITHUB_ENV
-            echo "openaiExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts" "$openaiName" "$suffixStandard")" >> $GITHUB_ENV
-            echo "aiSearchExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.Search/searchServices" "$safeNameAISearch" "$suffixStandardNoDash")" >> $GITHUB_ENV
-            echo "aiServicesExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts" "$aiServicesPrefix" "$suffixStandardNoDash")" >> $GITHUB_ENV
-            echo "containerAppsEnvExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.App/managedEnvironments" "$containerAppsEnvName" "$suffixStandard")" >> $GITHUB_ENV
-            echo "containerAppAExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.App/containerApps" "$containerAppAName" "$suffixStandard")" >> $GITHUB_ENV
-            echo "containerAppWExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.App/containerApps" "$containerAppWName" "$suffixStandard")" >> $GITHUB_ENV
-            echo "keyvaultExists=$(resource_exists_fuzzy "$targetRG" "Microsoft.KeyVault/vaults" "$keyvaultName" "$twoNumbers")" >> $GITHUB_ENV
-            echo "miACAExists=$(resource_exists_identity "$targetRG" "$miACAPrefix")" >> $GITHUB_ENV
-            echo "miPrjExists=$(resource_exists_identity "$targetRG" "$miPrjPrefix")" >> $GITHUB_ENV
-            echo "storageAccount1001Exists=$(resource_exists_fuzzy "$targetRG" "Microsoft.Storage/storageAccounts" "$storageAccount1001Name" "")" >> $GITHUB_ENV
-            echo "storageAccount2001Exists=$(resource_exists_fuzzy "$targetRG" "Microsoft.Storage/storageAccounts" "$storageAccount2001Name" "")" >> $GITHUB_ENV
+            set_env() {
+              local key="$1" val="$2"
+              echo "${key}=${val}" >> $GITHUB_ENV
+              echo "Checking variable: ${key}, Value: ${val}"
+            }
+            set_env "aiHubExists"            "$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aiHubName" "$suffixStandard")"
+            set_env "aifProjectExists"       "$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aifProjectName" "$suffixStandard")"
+            set_env "aiFoundryV2Exists"      "$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts" "$aiFoundryV2Name" "")"
+            set_env "aiFoundryV2ProjectExists" "$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts/projects" "$aiFoundryV2ProjectName" "")"
+            set_env "dataFactoryExists"      "$(resource_exists_fuzzy "$targetRG" "Microsoft.DataFactory/factories" "$dataFactoryName" "$suffixStandard")"
+            set_env "botServiceExists"       "$(resource_exists_fuzzy "$targetRG" "Microsoft.BotService/botServices" "$botServiceName" "$suffixStandard")"
+            set_env "aksExists"              "$(resource_exists_fuzzy "$targetRG" "Microsoft.ContainerService/managedClusters" "$aksName" "$suffixStandard")"
+            set_env "amlExists"              "$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$amlName" "$suffixStandard")"
+            set_env "openaiExists"           "$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts" "$openaiName" "$suffixStandard")"
+            set_env "aiSearchExists"         "$(resource_exists_fuzzy "$targetRG" "Microsoft.Search/searchServices" "$safeNameAISearch" "$suffixStandardNoDash")"
+            set_env "aiServicesExists"       "$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts" "$aiServicesPrefix" "$suffixStandardNoDash")"
+            set_env "containerAppsEnvExists" "$(resource_exists_fuzzy "$targetRG" "Microsoft.App/managedEnvironments" "$containerAppsEnvName" "$suffixStandard")"
+            set_env "containerAppAExists"    "$(resource_exists_fuzzy "$targetRG" "Microsoft.App/containerApps" "$containerAppAName" "$suffixStandard")"
+            set_env "containerAppWExists"    "$(resource_exists_fuzzy "$targetRG" "Microsoft.App/containerApps" "$containerAppWName" "$suffixStandard")"
+            set_env "keyvaultExists"         "$(resource_exists_fuzzy "$targetRG" "Microsoft.KeyVault/vaults" "$keyvaultName" "$twoNumbers")"
+            set_env "miACAExists"            "$(resource_exists_identity "$targetRG" "$miACAPrefix")"
+            set_env "miPrjExists"            "$(resource_exists_identity "$targetRG" "$miPrjPrefix")"
+            set_env "storageAccount1001Exists" "$(resource_exists_fuzzy "$targetRG" "Microsoft.Storage/storageAccounts" "$storageAccount1001Name" "")"
+            set_env "storageAccount2001Exists" "$(resource_exists_fuzzy "$targetRG" "Microsoft.Storage/storageAccounts" "$storageAccount2001Name" "")"
 
       - name: 17_Extract_aifactory_salt_random
         uses: azure/cli@v2
