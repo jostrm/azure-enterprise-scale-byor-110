@@ -929,7 +929,22 @@ jobs:
             set_env "aiHubExists"            "$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aiHubName" "$suffixStandard")"
             set_env "aifProjectExists"       "$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aifProjectName" "$suffixStandard")"
             set_env "aiFoundryV2Exists"      "$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts" "$aiFoundryV2Name" "")"
-            set_env "aiFoundryV2ProjectExists" "$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts/projects" "$aiFoundryV2ProjectName" "")"
+            # Nested projects can't be enumerated with az resource list — use REST API instead
+            _subId=$(az account show --query id -o tsv)
+            _fdryAcct=$(az cognitiveservices account list --resource-group "$targetRG" \
+              --query "[?starts_with(name, 'aif2')].name" -o tsv 2>/dev/null | head -n1)
+            if [ -n "$_fdryAcct" ]; then
+              _projCount=$(az rest --method GET \
+                --url "https://management.azure.com/subscriptions/${_subId}/resourceGroups/${targetRG}/providers/Microsoft.CognitiveServices/accounts/${_fdryAcct}/projects?api-version=2024-10-01" \
+                --query "length(value)" -o tsv 2>/dev/null || echo "0")
+              if [ "${_projCount:-0}" -gt 0 ]; then
+                set_env "aiFoundryV2ProjectExists" "true"
+              else
+                set_env "aiFoundryV2ProjectExists" "false"
+              fi
+            else
+              set_env "aiFoundryV2ProjectExists" "false"
+            fi
             set_env "dataFactoryExists"      "$(resource_exists_fuzzy "$targetRG" "Microsoft.DataFactory/factories" "$dataFactoryName" "$suffixStandard")"
             set_env "botServiceExists"       "$(resource_exists_fuzzy "$targetRG" "Microsoft.BotService/botServices" "$botServiceName" "$suffixStandard")"
             set_env "aksExists"              "$(resource_exists_fuzzy "$targetRG" "Microsoft.ContainerService/managedClusters" "$aksName" "$suffixStandard")"
@@ -1009,20 +1024,11 @@ jobs:
               echo "Deleting $rtype '$rname' in $rg ..."
               case "$rtype" in
                 Microsoft.CognitiveServices/accounts)
-                  # Use az resource list with --parent to reliably enumerate nested projects
-                  # without depending on a specific preview API version being available in the CLI image
+                  # Nested projects require REST — az resource list cannot enumerate child types
                   subId=$(az account show --query id -o tsv)
-                  projectNames=$(az resource list \
-                    --resource-group "$rg" \
-                    --resource-type "Microsoft.CognitiveServices/accounts/projects" \
-                    --query "[?starts_with(id, '/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/')].name" \
-                    -o tsv 2>/dev/null || echo "")
-                  # Fallback: direct REST list if az resource list returns nothing
-                  if [ -z "$projectNames" ]; then
-                    projectNames=$(az rest --method GET \
-                      --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects?api-version=2024-10-01" \
-                      --query "value[].name" -o tsv 2>/dev/null || echo "")
-                  fi
+                  projectNames=$(az rest --method GET \
+                    --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects?api-version=2024-10-01" \
+                    --query "value[].name" -o tsv 2>/dev/null || echo "")
                   if [ -n "$projectNames" ]; then
                     while IFS= read -r proj; do
                       [ -z "$proj" ] && continue
@@ -1033,12 +1039,10 @@ jobs:
                     done <<< "$projectNames"
                     echo "  Polling until all projects are gone (max 3min)..."
                     for i in $(seq 1 18); do
-                      remaining=$(az resource list \
-                        --resource-group "$rg" \
-                        --resource-type "Microsoft.CognitiveServices/accounts/projects" \
-                        --query "[?starts_with(id, '/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/')].name" \
-                        -o tsv 2>/dev/null | grep -c . || echo "0")
-                      [ "$remaining" -eq 0 ] && break
+                      remaining=$(az rest --method GET \
+                        --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects?api-version=2024-10-01" \
+                        --query "length(value)" -o tsv 2>/dev/null || echo "0")
+                      [ "${remaining:-0}" -eq 0 ] && break
                       echo "  Still $remaining project(s) remaining, waiting 10s (attempt $i/18)..."
                       sleep 10
                     done
