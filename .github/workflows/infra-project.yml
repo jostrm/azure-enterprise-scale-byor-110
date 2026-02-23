@@ -984,37 +984,64 @@ jobs:
               echo "Deleting $rtype '$rname' in $rg ..."
               case "$rtype" in
                 Microsoft.CognitiveServices/accounts)
-                  # Delete nested Foundry projects first (if any)
+                  # Use az resource list with --parent to reliably enumerate nested projects
+                  # without depending on a specific preview API version being available in the CLI image
                   subId=$(az account show --query id -o tsv)
-                  projectNames=$(az rest --method GET \
-                    --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects?api-version=2025-01-01-preview" \
-                    --query "value[].name" -o tsv 2>/dev/null || echo "")
+                  projectNames=$(az resource list \
+                    --resource-group "$rg" \
+                    --resource-type "Microsoft.CognitiveServices/accounts/projects" \
+                    --query "[?starts_with(id, '/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/')].name" \
+                    -o tsv 2>/dev/null || echo "")
+                  # Fallback: direct REST list if az resource list returns nothing
+                  if [ -z "$projectNames" ]; then
+                    projectNames=$(az rest --method GET \
+                      --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects?api-version=2024-10-01" \
+                      --query "value[].name" -o tsv 2>/dev/null || echo "")
+                  fi
                   if [ -n "$projectNames" ]; then
                     while IFS= read -r proj; do
+                      [ -z "$proj" ] && continue
                       echo "  Deleting nested project '$proj' under account '$rname' ..."
                       az rest --method DELETE \
-                        --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects/${proj}?api-version=2025-01-01-preview" \
+                        --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects/${proj}?api-version=2024-10-01" \
                         || echo "WARN: failed to delete project $proj"
                     done <<< "$projectNames"
-                    echo "  Waiting 30s for project deletions to propagate..."
-                    sleep 30
+                    echo "  Polling until all projects are gone (max 3min)..."
+                    for i in $(seq 1 18); do
+                      remaining=$(az resource list \
+                        --resource-group "$rg" \
+                        --resource-type "Microsoft.CognitiveServices/accounts/projects" \
+                        --query "[?starts_with(id, '/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/')].name" \
+                        -o tsv 2>/dev/null | grep -c . || echo "0")
+                      [ "$remaining" -eq 0 ] && break
+                      echo "  Still $remaining project(s) remaining, waiting 10s (attempt $i/18)..."
+                      sleep 10
+                    done
                   fi
                   az cognitiveservices account delete --resource-group "$rg" --name "$rname" || echo "WARN: failed to delete $rname" ;;
                 Microsoft.Search/searchServices)
-                  # Delete shared private link resources first (blocks deletion if present)
+                  # Delete shared private link resources first, then poll until all gone
                   subId=$(az account show --query id -o tsv)
                   splNames=$(az rest --method GET \
                     --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.Search/searchServices/${rname}/sharedPrivateLinkResources?api-version=2023-11-01" \
                     --query "value[].name" -o tsv 2>/dev/null || echo "")
                   if [ -n "$splNames" ]; then
                     while IFS= read -r spl; do
-                      echo "  Deleting shared private link '$spl' under search service '$rname' ..."
+                      [ -z "$spl" ] && continue
+                      echo "  Deleting shared private link '$spl' ..."
                       az rest --method DELETE \
                         --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.Search/searchServices/${rname}/sharedPrivateLinkResources/${spl}?api-version=2023-11-01" \
                         || echo "WARN: failed to delete SPL $spl"
                     done <<< "$splNames"
-                    echo "  Waiting 30s for SPL deletions to propagate..."
-                    sleep 30
+                    echo "  Polling until all SPLs are gone (max 5min)..."
+                    for i in $(seq 1 30); do
+                      remaining=$(az rest --method GET \
+                        --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.Search/searchServices/${rname}/sharedPrivateLinkResources?api-version=2023-11-01" \
+                        --query "length(value)" -o tsv 2>/dev/null || echo "0")
+                      [ "$remaining" -eq 0 ] && break
+                      echo "  Still $remaining SPL(s) remaining, waiting 10s (attempt $i/30)..."
+                      sleep 10
+                    done
                   fi
                   az search service delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
                 Microsoft.MachineLearningServices/workspaces)
