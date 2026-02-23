@@ -911,6 +911,16 @@ jobs:
             miPrjPrefix="mi-${projectName}-${locationSuffix}-${envName}"
             storageAccount1001Name="sa${projectName}${locationSuffix}"
             storageAccount2001Name="sa${projectName}${locationSuffix}"
+            databricksName="dbw-${projectName}-${locationSuffix}-${envName}"
+            redisName="redis${projectName}${locationSuffix}${envName}"
+            cosmosDbAccountName="cosmos-${projectName}-${locationSuffix}-${envName}"
+            logicAppName="la-${projectName}-${locationSuffix}-${envName}"
+            eventHubNsName="evhns-${projectName}-${locationSuffix}-${envName}"
+            funcAppName="func-${projectName}-${locationSuffix}-${envName}"
+            webAppResourceName="app-${projectName}-${locationSuffix}-${envName}"
+            pgServerName="pg-${projectName}-${locationSuffix}-${envName}"
+            bingAccountName="bing-${projectName}-${locationSuffix}-${envName}"
+            bingCustomName="bingcustom-${projectName}-${locationSuffix}-${envName}"
             set_env() {
               local key="$1" val="$2"
               echo "${key}=${val}" >> $GITHUB_ENV
@@ -935,6 +945,16 @@ jobs:
             set_env "miPrjExists"            "$(resource_exists_identity "$targetRG" "$miPrjPrefix")"
             set_env "storageAccount1001Exists" "$(resource_exists_fuzzy "$targetRG" "Microsoft.Storage/storageAccounts" "$storageAccount1001Name" "")"
             set_env "storageAccount2001Exists" "$(resource_exists_fuzzy "$targetRG" "Microsoft.Storage/storageAccounts" "$storageAccount2001Name" "")"
+            set_env "databricksExists"       "$(resource_exists_fuzzy "$targetRG" "Microsoft.Databricks/workspaces" "$databricksName" "$suffixStandard")"
+            set_env "redisExists"            "$(resource_exists_fuzzy "$targetRG" "Microsoft.Cache/Redis" "$redisName" "$suffixStandardNoDash")"
+            set_env "cosmosDBExists"         "$(resource_exists_fuzzy "$targetRG" "Microsoft.DocumentDB/databaseAccounts" "$cosmosDbAccountName" "$suffixStandard")"
+            set_env "logicAppsExists"        "$(resource_exists_fuzzy "$targetRG" "Microsoft.Logic/workflows" "$logicAppName" "$suffixStandard")"
+            set_env "eventHubsExists"        "$(resource_exists_fuzzy "$targetRG" "Microsoft.EventHub/namespaces" "$eventHubNsName" "$suffixStandard")"
+            set_env "functionAppExists"      "$(resource_exists_fuzzy "$targetRG" "Microsoft.Web/sites" "$funcAppName" "$suffixStandard")"
+            set_env "webAppExists"           "$(resource_exists_fuzzy "$targetRG" "Microsoft.Web/sites" "$webAppResourceName" "$suffixStandard")"
+            set_env "postgreSQLExists"       "$(resource_exists_fuzzy "$targetRG" "Microsoft.DBforPostgreSQL/flexibleServers" "$pgServerName" "$suffixStandard")"
+            set_env "bingExists"             "$(resource_exists_fuzzy "$targetRG" "Microsoft.Bing/accounts" "$bingAccountName" "$suffixStandard")"
+            set_env "bingCustomSearchExists" "$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts" "$bingCustomName" "$suffixStandard")"
 
       - name: 17_Extract_aifactory_salt_random
         uses: azure/cli@v2
@@ -1060,7 +1080,27 @@ jobs:
                 Microsoft.DataFactory/factories)
                   az datafactory delete --resource-group "$rg" --factory-name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
                 Microsoft.DocumentDB/databaseAccounts)
-                  az cosmosdb delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
+                  az cosmosdb delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname"
+                  # Delete associated private endpoint(s): name starts with 'cosmos', ends with 'pend'
+                  pendNames=$(az network private-endpoint list --resource-group "$rg" \
+                    --query "[?starts_with(name, 'cosmos') && ends_with(name, 'pend')].name" -o tsv 2>/dev/null || echo "")
+                  if [ -n "$pendNames" ]; then
+                    while IFS= read -r pend; do
+                      [ -z "$pend" ] && continue
+                      echo "  Deleting private endpoint '$pend' ..."
+                      az network private-endpoint delete --resource-group "$rg" --name "$pend" || echo "WARN: failed to delete PE $pend"
+                    done <<< "$pendNames"
+                  fi
+                  # Delete associated NICs: name starts with 'cosmos', ends with 'pend-nic'
+                  nicNames=$(az network nic list --resource-group "$rg" \
+                    --query "[?starts_with(name, 'cosmos') && ends_with(name, 'pend-nic')].name" -o tsv 2>/dev/null || echo "")
+                  if [ -n "$nicNames" ]; then
+                    while IFS= read -r nic; do
+                      [ -z "$nic" ] && continue
+                      echo "  Deleting NIC '$nic' ..."
+                      az network nic delete --resource-group "$rg" --name "$nic" || echo "WARN: failed to delete NIC $nic"
+                    done <<< "$nicNames"
+                  fi ;;
                 Microsoft.DBforPostgreSQL/flexibleServers)
                   az postgres flexible-server delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
                 Microsoft.Cache/Redis)
@@ -1073,6 +1113,18 @@ jobs:
                   az logicapp delete --resource-group "$rg" --name "$rname" --yes || echo "WARN: failed to delete $rname" ;;
                 Microsoft.EventHub/namespaces)
                   az eventhubs namespace delete --resource-group "$rg" --namespace-name "$rname" || echo "WARN: failed to delete $rname" ;;
+                Microsoft.BotService/botServices)
+                  az bot delete --resource-group "$rg" --name "$rname" || echo "WARN: failed to delete bot $rname"
+                  # Delete bot managed identity (suffix: <name>-identity)
+                  botIdentity=$(az resource list --resource-group "$rg" \
+                    --resource-type "Microsoft.ManagedIdentity/userAssignedIdentities" \
+                    --query "[?starts_with(name, '${rname}') && ends_with(name, '-identity')].name" -o tsv 2>/dev/null | head -n1)
+                  if [ -n "$botIdentity" ]; then
+                    echo "  Deleting bot managed identity '$botIdentity' ..."
+                    az identity delete --resource-group "$rg" --name "$botIdentity" || echo "WARN: failed to delete identity $botIdentity"
+                  fi ;;
+                Microsoft.Bing/accounts)
+                  az resource delete --resource-group "$rg" --name "$rname" --resource-type "Microsoft.Bing/accounts" || echo "WARN: failed to delete $rname" ;;
                 *)
                   az resource delete --resource-group "$rg" --name "$rname" --resource-type "$rtype" || echo "WARN: failed to delete $rname" ;;
               esac
@@ -1108,6 +1160,9 @@ jobs:
               az containerapp list --resource-group "$targetRG" --query "[].name" -o tsv 2>/dev/null | while read -r name; do
                 [ -n "$name" ] && delete_resource "Microsoft.App/containerApps" "$name" "$targetRG"
               done
+              # Also delete the managed environment once apps are removed
+              acaEnvName=$(az containerapp env list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
+              [ -n "$acaEnvName" ] && delete_resource "Microsoft.App/managedEnvironments" "$acaEnvName" "$targetRG"
             fi
             if should_delete "${{ env.enableCosmosDB }}" "${{ env.cosmosDBExists }}"; then
               cosmosName=$(az cosmosdb list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
@@ -1157,6 +1212,24 @@ jobs:
             if should_delete "${{ env.enableAksForAzureML }}" "${{ env.aksExists }}"; then
               aksName=$(az aks list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
               [ -n "$aksName" ] && delete_resource "Microsoft.ContainerService/managedClusters" "$aksName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableBotService }}" "${{ env.botServiceExists }}"; then
+              # Bot name pattern: bot-{projectNumber}-{locationSuffix}-{envName}-{suffix}
+              botName=$(az resource list --resource-group "$targetRG" \
+                --resource-type "Microsoft.BotService/botServices" \
+                --query "[?starts_with(name, 'bot-${projectNumber}')].name" -o tsv 2>/dev/null | head -n1)
+              [ -n "$botName" ] && delete_resource "Microsoft.BotService/botServices" "$botName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableBing }}" "${{ env.bingExists }}"; then
+              bingName=$(az resource list --resource-group "$targetRG" \
+                --resource-type "Microsoft.Bing/accounts" \
+                --query "[?starts_with(name, 'bing-${projectName}')].name" -o tsv 2>/dev/null | head -n1)
+              [ -n "$bingName" ] && delete_resource "Microsoft.Bing/accounts" "$bingName" "$targetRG"
+            fi
+            if should_delete "${{ env.enableBingCustomSearch }}" "${{ env.bingCustomSearchExists }}"; then
+              bingCustName=$(az cognitiveservices account list --resource-group "$targetRG" \
+                --query "[?kind=='Bing.CustomSearch' || starts_with(name, 'bingcustom')].name" -o tsv 2>/dev/null | head -n1)
+              [ -n "$bingCustName" ] && delete_resource "Microsoft.CognitiveServices/accounts" "$bingCustName" "$targetRG"
             fi
             echo "18_Delete_Service_If_Not_Enabled_And_Exists completed."
 
