@@ -1185,6 +1185,25 @@ jobs:
               fdryName=$(az cognitiveservices account list --resource-group "$targetRG" --query "[?kind=='AIServices'].name" -o tsv 2>/dev/null | head -n1)
               [ -n "$fdryName" ] && delete_resource "Microsoft.CognitiveServices/accounts" "$fdryName" "$targetRG"
             fi
+            # Unconditional sweep: clean up orphaned AI Foundry V2 private endpoints and NICs
+            # (runs even if the account was already deleted but PE/NIC cleanup previously failed)
+            echo "Sweeping for orphaned AI Foundry V2 private endpoints (aif2*-pend) ..."
+            orphanPEs=$(az network private-endpoint list --resource-group "$targetRG" \
+              --query "[?starts_with(name, 'aif2') && ends_with(name, '-pend')].name" -o tsv 2>/dev/null || echo "")
+            if [ -n "$orphanPEs" ]; then
+              while IFS= read -r pe; do
+                [ -z "$pe" ] && continue
+                echo "  Deleting orphaned PE '$pe' ..."
+                az network private-endpoint delete --resource-group "$targetRG" --name "$pe" 2>/dev/null \
+                  || echo "  INFO: PE '$pe' not found or already deleted"
+                _orphanNIC="${pe}-nic"
+                echo "  Deleting orphaned NIC '${_orphanNIC}' ..."
+                az network nic delete --resource-group "$targetRG" --name "$_orphanNIC" 2>/dev/null \
+                  || echo "  INFO: NIC '${_orphanNIC}' not found or already deleted"
+              done <<< "$orphanPEs"
+            else
+              echo "  No orphaned AI Foundry V2 PEs found."
+            fi
             if should_delete "${{ env.enableAISearch }}" "${{ env.aiSearchExists }}"; then
               srchName=$(az search service list --resource-group "$targetRG" --query "[0].name" -o tsv 2>/dev/null)
               [ -n "$srchName" ] && delete_resource "Microsoft.Search/searchServices" "$srchName" "$targetRG"
