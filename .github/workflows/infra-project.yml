@@ -935,12 +935,21 @@ jobs:
               --query "[?starts_with(name, 'aif2')].name" -o tsv 2>/dev/null | head -n1)
             if [ -n "$_fdryAcct" ]; then
               _projCount=$(az rest --method GET \
-                --url "https://management.azure.com/subscriptions/${_subId}/resourceGroups/${targetRG}/providers/Microsoft.CognitiveServices/accounts/${_fdryAcct}/projects?api-version=2024-10-01" \
+                --url "https://management.azure.com/subscriptions/${_subId}/resourceGroups/${targetRG}/providers/Microsoft.CognitiveServices/accounts/${_fdryAcct}/projects?api-version=2025-12-01" \
                 --query "length(value)" -o tsv 2>/dev/null || echo "0")
               if [ "${_projCount:-0}" -gt 0 ]; then
                 set_env "aiFoundryV2ProjectExists" "true"
               else
-                set_env "aiFoundryV2ProjectExists" "false"
+                # Fallback: try a direct GET for the known project name pattern aif2-p{projectNumber}
+                _projName="aif2-p${{ env.project_number_000 }}"
+                _httpStatus=$(az rest --method GET \
+                  --url "https://management.azure.com/subscriptions/${_subId}/resourceGroups/${targetRG}/providers/Microsoft.CognitiveServices/accounts/${_fdryAcct}/projects/${_projName}?api-version=2025-12-01" \
+                  -o none 2>/dev/null && echo "200" || echo "404")
+                if [ "$_httpStatus" = "200" ]; then
+                  set_env "aiFoundryV2ProjectExists" "true"
+                else
+                  set_env "aiFoundryV2ProjectExists" "false"
+                fi
               fi
             else
               set_env "aiFoundryV2ProjectExists" "false"
@@ -1027,20 +1036,28 @@ jobs:
                   # Nested projects require REST — az resource list cannot enumerate child types
                   subId=$(az account show --query id -o tsv)
                   projectNames=$(az rest --method GET \
-                    --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects?api-version=2024-10-01" \
+                    --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects?api-version=2025-12-01" \
                     --query "value[].name" -o tsv 2>/dev/null || echo "")
+                  # Fallback: if list returned empty, try direct GET for the known name pattern
+                  if [ -z "$projectNames" ]; then
+                    _directProjName="aif2-p${{ env.project_number_000 }}"
+                    _chk=$(az rest --method GET \
+                      --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects/${_directProjName}?api-version=2025-12-01" \
+                      -o none 2>/dev/null && echo "exists" || echo "")
+                    [ -n "$_chk" ] && projectNames="$_directProjName"
+                  fi
                   if [ -n "$projectNames" ]; then
                     while IFS= read -r proj; do
                       [ -z "$proj" ] && continue
                       echo "  Deleting nested project '$proj' under account '$rname' ..."
                       az rest --method DELETE \
-                        --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects/${proj}?api-version=2024-10-01" \
+                        --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects/${proj}?api-version=2025-12-01" \
                         || echo "WARN: failed to delete project $proj"
                     done <<< "$projectNames"
                     echo "  Polling until all projects are gone (max 3min)..."
                     for i in $(seq 1 18); do
                       remaining=$(az rest --method GET \
-                        --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects?api-version=2024-10-01" \
+                        --url "https://management.azure.com/subscriptions/${subId}/resourceGroups/${rg}/providers/Microsoft.CognitiveServices/accounts/${rname}/projects?api-version=2025-12-01" \
                         --query "length(value)" -o tsv 2>/dev/null || echo "0")
                       [ "${remaining:-0}" -eq 0 ] && break
                       echo "  Still $remaining project(s) remaining, waiting 10s (attempt $i/18)..."
