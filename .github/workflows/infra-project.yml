@@ -1073,7 +1073,14 @@ jobs:
                       sleep 10
                     done
                   fi
-                  az cognitiveservices account delete --resource-group "$rg" --name "$rname" || echo "WARN: failed to delete $rname" ;;
+                  az cognitiveservices account delete --resource-group "$rg" --name "$rname" || echo "WARN: failed to delete $rname"
+                  # Clean up private endpoint and NIC: {accountName}-pend, {accountName}-pend-nic
+                  _aif2PE="${rname}-pend"
+                  _aif2NIC="${rname}-pend-nic"
+                  echo "  Deleting private endpoint '${_aif2PE}' ..."
+                  az network private-endpoint delete --resource-group "$rg" --name "$_aif2PE" 2>/dev/null || echo "  INFO: PE '${_aif2PE}' not found or already deleted"
+                  echo "  Deleting NIC '${_aif2NIC}' ..."
+                  az network nic delete --resource-group "$rg" --name "$_aif2NIC" 2>/dev/null || echo "  INFO: NIC '${_aif2NIC}' not found or already deleted" ;;
                 Microsoft.Search/searchServices)
                   # Delete shared private link resources first, then poll until all gone
                   subId=$(az account show --query id -o tsv)
