@@ -2103,7 +2103,6 @@ jobs:
               --parameters diagnosticSettingLevel="${{ env.diagnosticSettingLevel }}" \
               --parameters addAISearch="${{ env.addAISearch }}" \
               --parameters skipExistingRoleAssignments="${{ env.skipACRAssignments }}" \
-              --parameters contributorRoleId="${{ env.BYO_CONTRIBUTOR_ROLE_ID }}" \
               --debug
 
       - name: 69a-aifoundry-2025-2ndOption-Account
