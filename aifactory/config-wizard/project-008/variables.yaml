@@ -18,7 +18,7 @@ variables:
   admin_location: "swedencentral"
   admin_locationSuffix: "sdc"
   admin_aiSearchTier: "basic"
-  admin_semanticSearchTier: "standard"
+  admin_semanticSearchTier: "free"
   admin_aifactoryPrefixRG: "mrvel-1-"
   
   # SEEDING KEYVAULT: One global (same values for all tripples), or one per environment (different values for dev,test,prod)
@@ -88,7 +88,7 @@ variables:
   # ============================================================================
   enablePublicGenAIAccess: "true"
   allowPublicAccessWhenBehindVnet: "true"
-  enablePublicAccessWithPerimeter: "false"
+  enablePublicAccessWithPerimeter: "true"
 
   # ============================================================================
   # MANDATORY(CHANGE RARELY):RBAC restrictions
@@ -161,7 +161,7 @@ variables:
   project_service_principal_AppID_seeding_kv_name: "esml-project001-sp-id"
   project_service_principal_OID_seeding_kv_name: "esml-project001-sp-oid"
   project_service_principal_Secret_seeding_kv_name: "esml-project001-sp-secret"
-  project_number_000: "009"
+  project_number_000: "008"
   tag_costcenter: "000005"
   tagsProject: '{"CostCenter":"$(tag_costcenter)","Description":"RAG Chat 1","AIF-Branch":"$(tag_repository_branch)/project$(project_number_000)","AIF-Scaleset":"$(admin_aifactorySuffixRG)","AIF-Environment":"$(dev_test_prod)","AIF-Project Owners":"$(technical_admins_email)","AIFactory project":"$(project_number_000)","AIF-Networking":"$(allowPublicAccessWhenBehindVnet),$(enablePublicGenAIAccess),$(enablePublicAccessWithPerimeter)","AIF-enableAIFactoryCreatedDefaultProjectForAIFv2":"$(enableAIFactoryCreatedDefaultProjectForAIFv2)","AIF-disableAgentNetworkInjection":"$(disableAgentNetworkInjection)","AIF-byoASEv3":"$(byoASEv3)","AIF-BYO_subnets":"$(BYO_subnets)"}'
   project_IP_whitelist: ""
@@ -204,7 +204,7 @@ variables:
   # - The AI Factory will grant your Microsoft Foundry resource and project system-assigned managed identity the following permissions on your key vault: get key, wrap key, unwrap key.
   # - Only RSA and RSA-HSM keys of size 2048 are supported.
 
-  cmk: "true"
+  cmk: "false"
   cmkKeyName: "aifactory-cmk-key"
   cmkKeyVersion: ""
   # === Keyvault RBAC ===
@@ -213,18 +213,18 @@ variables:
   # === AI foundry 2025 ===
   enableAIFoundry: "true"
   updateAIFoundry: "false"
-  addAIFoundry: "false"
-  enableAFoundryCaphost: "true"
+  addAIFoundry: "true"
+  enableAFoundryCaphost: "false"
   foundryDeploymentType: "2"
   enableAIFactoryCreatedDefaultProjectForAIFv2: "true"
-  disableAgentNetworkInjection: "false"
+  disableAgentNetworkInjection: "true"
   # NetworkInjection -> Known agent functional limitations, if false: Azure Blob Storage: using Azure Blob Storage files with the File Search tool isn't supported.
   # NetworkInjection -> Read more about Agent Network Injection, and known limitations: https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/virtual-networks?WT.mc_id=Portal-Microsoft_Azure_ProjectOxford
 
   # === Data & Machine Learning ===
-  enableDatafactory: "false"
+  enableDatafactory: "true"
   enableDatafactoryCommon: "false"
-  enableAzureMachineLearning: "false"
+  enableAzureMachineLearning: "true"
   addAzureMachineLearning: "false"
   # === AKS for Azure ML ===
   enableAksForAzureML: "false"
@@ -232,7 +232,7 @@ variables:
   aksPrivateDNSZone: "system"
   aksAzureFirewallPrivateIp: ""
 
-  enableDatabricks: "false"
+  enableDatabricks: "true"
   # === Cognitive Services ===
   enableAISearch: "true"
   addAISearch: "false"
@@ -409,7 +409,7 @@ variables:
   # DEBUG SETTINGS - Error Cleanup Tasks
   # Note: You still need to PURGE AIServices and AI Foundry project (2025) due to soft delete
   ## ============================================================================
-  debugEnableCleaning: "false"
+  debugEnableCleaning: "true"
   # ============================================================================
   # RETRY SETTINGS - Job Retry Configuration
   # ============================================================================
