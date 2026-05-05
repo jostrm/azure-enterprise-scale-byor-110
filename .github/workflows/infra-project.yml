@@ -1045,6 +1045,8 @@ jobs:
             if [ -n "$miName" ]; then
               salt="${miName: -14:10}"
               echo "aifactory_salt_random=$salt" >> $GITHUB_ENV
+              salt5="${miName: -19:5}"
+              echo "aifactory_salt=$salt5" >> $GITHUB_ENV
             fi
 
       - name: 06a_Delete_CapabilityHosts
@@ -1069,68 +1071,55 @@ jobs:
             projectNameReplaced="${projectName/prj/project}"
             projectResourceGroup="${commonRGNamePrefix}${projectPrefix}${projectNameReplaced}-${locationSuffix}-${envName}${aifactorySuffixRG}${projectSuffix}"
 
-            echo "=== 06a: Delete Capability Hosts in $projectResourceGroup ==="
+            echo "=== 06a: Delete Capability Hosts ==="
+            echo "Resource group: $projectResourceGroup"
 
-            # Find AI Foundry account (aif2* but not aif2-p*)
-            account_name=$(az cognitiveservices account list \
-              --subscription "${{ env.dev_test_prod_sub_id }}" \
-              --resource-group "$projectResourceGroup" \
-              --query "[?starts_with(name, 'aif2') && !starts_with(name, 'aif2-p')].name | [0]" -o tsv 2>/dev/null || echo "")
+            # Salt variables set by step 17_Extract_aifactory_salt_random
+            # uniqueInAIFenv = 5-char salt (e.g. x46jf), saltRandom10 = 10-char random (e.g. c2ebe6a898)
+            uniqueInAIFenv="${{ env.aifactory_salt }}"
+            saltRandom10="${{ env.aifactory_salt_random }}"
 
-            if [ -z "$account_name" ]; then
-              echo "No AI Foundry account found in $projectResourceGroup. Skipping."
+            echo "DEBUG: uniqueInAIFenv='$uniqueInAIFenv' saltRandom10='$saltRandom10'"
+
+            if [ -z "$uniqueInAIFenv" ] || [ -z "$saltRandom10" ]; then
+              echo "Salt variables not available from pipeline. Cannot construct Foundry names. Skipping."
               exit 0
             fi
 
-            echo "AI Foundry account: $account_name"
+            # Construct Foundry names deterministically (same formula as CmnAIfactoryNaming.bicep)
+            # When addAIFoundry=false (default):
+            #   aifV2Name = take(replace(toLower('aif2' + uniqueInAIFenv + cleanRandomValue), '-', ''), 12)
+            #   aifV2PrjName = take(toLower('aif2-p' + projectNumber + uniqueInAIFenv + cleanRandomValue), 12)
+            # When addAIFoundry=true:
+            #   aifV2NameAdd = take('aif2' + lastSuffixChar + cleanRandomValue, 12)
+            #   aifV2PrjNameAdd = take('aif2-p' + projectNumber + lastSuffixChar + cleanRandomValue, 12)
+            # NOTE: Using awk instead of tr to avoid locale issues on hosted agents
+            cleanRandomValue="${saltRandom10//-/}"
+            cleanRandomValue="${cleanRandomValue//_/}"
+            cleanRandomValue=$(echo "$cleanRandomValue" | awk '{print tolower($0)}')
 
-            # Delete project-level capability hosts first
-            projects_json=$(az rest --method GET \
-              --url "https://management.azure.com/subscriptions/${{ env.dev_test_prod_sub_id }}/resourceGroups/${projectResourceGroup}/providers/Microsoft.CognitiveServices/accounts/${account_name}/projects?api-version=2025-04-01-preview" \
-              -o json 2>/dev/null || echo '{"value":[]}')
+            addAIFoundryFlag="${{ env.addAIFoundry }}"
+            resourceSuffix="${{ env.admin_prjResourceSuffix }}"
 
-            project_names=$(echo "$projects_json" | jq -r '.value[].name // empty' | tr -d '\r')
-            if [ -n "$project_names" ]; then
-              while IFS= read -r proj; do
-                [ -z "$proj" ] && continue
-                proj="${proj##*/}"
-                caphost_name="${proj//\-/}caphost"
-                echo "Deleting project caphost: $caphost_name on project $proj ..."
-                az rest --method DELETE \
-                  --url "https://management.azure.com/subscriptions/${{ env.dev_test_prod_sub_id }}/resourceGroups/${projectResourceGroup}/providers/Microsoft.CognitiveServices/accounts/${account_name}/projects/${proj}/capabilityHosts/${caphost_name}?api-version=2025-07-01-preview" \
-                  2>/dev/null || echo "INFO: Project caphost '$caphost_name' not found or already deleted"
-              done <<< "$project_names"
-
-              # Wait for project caphost deletion
-              echo "Waiting 60s for project capability host deletion to propagate..."
-              sleep 60
+            if [ "$addAIFoundryFlag" == "true" ]; then
+              # addAIFoundry=true: use lastSuffixChar (last char of resourceSuffix, e.g. '1' from '-001')
+              lastSuffixChar="${resourceSuffix: -1}"
+              foundry_account_name=$(echo "aif2${lastSuffixChar}${cleanRandomValue}" | cut -c1-12)
+              foundry_project_name=$(echo "aif2-p${projectNumber}${lastSuffixChar}${cleanRandomValue}" | cut -c1-12)
+            else
+              # Default: use uniqueInAIFenv (5-char salt)
+              foundry_account_name=$(echo "aif2${uniqueInAIFenv}${cleanRandomValue}" | awk '{gsub(/-/,""); print tolower($0)}' | cut -c1-12)
+              foundry_project_name=$(echo "aif2-p${projectNumber}${uniqueInAIFenv}${cleanRandomValue}" | awk '{print tolower($0)}' | cut -c1-12)
             fi
 
-            # Delete account-level capability host
-            acct_caphost_name="${account_name//\-/}caphost"
-            echo "Deleting account caphost: $acct_caphost_name ..."
-            az rest --method DELETE \
-              --url "https://management.azure.com/subscriptions/${{ env.dev_test_prod_sub_id }}/resourceGroups/${projectResourceGroup}/providers/Microsoft.CognitiveServices/accounts/${account_name}/capabilityHosts/${acct_caphost_name}?api-version=2025-07-01-preview" \
-              2>/dev/null || echo "INFO: Account caphost '$acct_caphost_name' not found or already deleted"
+            echo "DEBUG 06a: addAIFoundry='$addAIFoundryFlag' cleanRandomValue='$cleanRandomValue' account='$foundry_account_name' project='$foundry_project_name'"
+            echo "Foundry account name: $foundry_account_name"
+            echo "Foundry project name: $foundry_project_name"
 
-            # Poll until account caphost is gone (max 5 min)
-            echo "Polling until account caphost is deleted (max 5 min)..."
-            for i in $(seq 1 30); do
-              status=$(az rest --method GET \
-                --url "https://management.azure.com/subscriptions/${{ env.dev_test_prod_sub_id }}/resourceGroups/${projectResourceGroup}/providers/Microsoft.CognitiveServices/accounts/${account_name}/capabilityHosts/${acct_caphost_name}?api-version=2025-07-01-preview" \
-                -o json 2>/dev/null || echo "")
-              if [ -z "$status" ]; then
-                echo "Account caphost deleted successfully."
-                break
-              fi
-              prov=$(echo "$status" | jq -r '.properties.provisioningState // "Unknown"')
-              echo "  [$i/30] Account caphost state: $prov"
-              if [ "$prov" = "Deleting" ] || [ "$prov" = "Succeeded" ]; then
-                sleep 10
-              else
-                break
-              fi
-            done
+            # Call the delete-capHost-command.sh script
+            script_path="${GITHUB_WORKSPACE}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts/delete-capHost-command.sh"
+            echo "Attempting caphost deletion (even if account is already deleted)..."
+            bash "$script_path" "${{ env.dev_test_prod_sub_id }}" "$projectResourceGroup" "$foundry_account_name" "$foundry_project_name"
 
             echo "=== 06a completed ==="
 
