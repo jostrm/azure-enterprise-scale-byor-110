@@ -1098,10 +1098,10 @@ jobs:
             # When addAIFoundry=true:
             #   aifV2NameAdd = take('aif2' + lastSuffixChar + cleanRandomValue, 12)
             #   aifV2PrjNameAdd = take('aif2-p' + projectNumber + lastSuffixChar + cleanRandomValue, 12)
-            # NOTE: Using awk instead of tr to avoid locale issues on hosted agents
+            # NOTE: Using bash built-ins for portability (awk not available in Azure CLI container)
             cleanRandomValue="${saltRandom10//-/}"
             cleanRandomValue="${cleanRandomValue//_/}"
-            cleanRandomValue=$(echo "$cleanRandomValue" | awk '{print tolower($0)}')
+            cleanRandomValue="${cleanRandomValue,,}"
 
             addAIFoundryFlag="${{ env.addAIFoundry }}"
             resourceSuffix="${{ env.admin_prjResourceSuffix }}"
@@ -1113,8 +1113,10 @@ jobs:
               foundry_project_name=$(echo "aif2-p${projectNumber}${lastSuffixChar}${cleanRandomValue}" | cut -c1-12)
             else
               # Default: use uniqueInAIFenv (5-char salt)
-              foundry_account_name=$(echo "aif2${uniqueInAIFenv}${cleanRandomValue}" | awk '{gsub(/-/,""); print tolower($0)}' | cut -c1-12)
-              foundry_project_name=$(echo "aif2-p${projectNumber}${uniqueInAIFenv}${cleanRandomValue}" | awk '{print tolower($0)}' | cut -c1-12)
+              temp_account="${uniqueInAIFenv}${cleanRandomValue}"
+              temp_account="${temp_account//-/}"
+              foundry_account_name=$(echo "aif2${temp_account,,}" | cut -c1-12)
+              foundry_project_name=$(echo "aif2-p${projectNumber}${uniqueInAIFenv}${cleanRandomValue}" | cut -c1-12 | tr '[:upper:]' '[:lower:]')
             fi
 
             echo "DEBUG 06a: addAIFoundry='$addAIFoundryFlag' cleanRandomValue='$cleanRandomValue' account='$foundry_account_name' project='$foundry_project_name'"
