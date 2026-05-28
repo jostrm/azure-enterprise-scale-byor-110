@@ -145,12 +145,18 @@ jobs:
       foundryDeploymentType: ${{ vars.FOUNDRY_DEPLOYMENT_TYPE || '2' }}
       enableAIFactoryCreatedDefaultProjectForAIFv2: ${{ vars.ENABLE_AIFACTORY_CREATED_DEFAULT_PROJECT_FOR_AIFV2 || 'true' }}
       disableAgentNetworkInjection: ${{ vars.DISABLE_AGENT_NETWORK_INJECTION || 'false' }}
+      policyExemptionAssignmentIds: ${{ vars.POLICY_EXEMPTION_ASSIGNMENT_IDS || '[]' }}
+      policyExemptionDefinitionReferenceIds: ${{ vars.POLICY_EXEMPTION_DEFINITION_REFERENCE_IDS || '[]' }}
       enableDatafactory: ${{ vars.ENABLE_DATAFACTORY || 'false' }}
       enableAzureMachineLearning: ${{ vars.ENABLE_AZURE_MACHINE_LEARNING || 'false' }}
       addAzureMachineLearning: ${{ vars.ADD_AZURE_MACHINE_LEARNING || 'false' }}
       enableDatafactoryCommon: ${{ vars.ENABLE_DATAFACTORY_COMMON || 'false' }}
       enableDatabricks: ${{ vars.ENABLE_DATABRICKS || 'false' }}
       enableAksForAzureML: ${{ vars.ENABLE_AKS_FOR_AZURE_ML || 'true' }}
+      enableAKS: ${{ vars.ENABLE_AKS || 'false' }}
+      aksSkuName: ${{ vars.AKS_SKU_NAME || 'Base' }}
+      aksSkuTier: ${{ vars.AKS_SKU_TIER || 'Standard' }}
+      aksEnablePrivateCluster: ${{ vars.AKS_ENABLE_PRIVATE_CLUSTER || 'true' }}
       aksOutboundType: ${{ vars.AKS_OUTBOUND_TYPE || 'loadBalancer' }}
       aksPrivateDNSZone: ${{ vars.AKS_PRIVATE_DNS_ZONE || 'system' }}
       aksAzureFirewallPrivateIp: ${{ vars.AKS_AZURE_FIREWALL_PRIVATE_IP || '' }}
@@ -173,6 +179,11 @@ jobs:
       enablePostgreSQL: ${{ vars.ENABLE_POSTGRESQL || 'false' }}
       enableRedisCache: ${{ vars.ENABLE_REDIS_CACHE || 'false' }}
       enableSQLDatabase: ${{ vars.ENABLE_SQL_DATABASE || 'false' }}
+      enableElasticsearch: ${{ vars.ENABLE_ELASTICSEARCH || 'false' }}
+      elasticType: ${{ vars.ELASTIC_TYPE || 'ElasticCloud' }}
+      elasticEmail: ${{ vars.ELASTIC_EMAIL || 'admin@example.com' }}
+      elasticDeploymentSize: ${{ vars.ELASTIC_DEPLOYMENT_SIZE || 'small' }}
+      elasticSku: ${{ vars.ELASTIC_SKU || 'ess-consumption-2024_Monthly' }}
       enablePublicGenAIAccess: ${{ vars.ENABLE_PUBLIC_GENAI_ACCESS || 'false' }}
       allowPublicAccessWhenBehindVnet: ${{ vars.ALLOW_PUBLIC_ACCESS_WHEN_BEHIND_VNET || 'false' }}
       enablePublicAccessWithPerimeter: ${{ vars.ENABLE_PUBLIC_ACCESS_WITH_PERIMETER || 'false' }}
@@ -186,7 +197,8 @@ jobs:
 
       # Complete mode vs Incremental mode
       enableDeleteForDisabledResources: ${{ vars.ENABLE_DELETE_FOR_DISABLED_RESOURCES || 'true' }}
-      deleteAllServicesForProject: ${{ vars.DELETE_ALL_SERVICES_FOR_PROJECT || 'true' }}
+      deleteAllServicesForProject: ${{ vars.DELETE_ALL_SERVICES_FOR_PROJECT || 'false' }}
+      deleteAllForProject: ${{ vars.DELETE_ALL_FOR_PROJECT || 'false' }}
 
       # DNS zone existence flags (for parity with ADO debug params)
       zoneAzurecontainerappsExists: ${{ vars.ZONE_AZURECONTAINERAPPS_EXISTS || 'false' }}
@@ -253,6 +265,8 @@ jobs:
       openaiExists: 'false'
       aiSearchExists: 'false'
       aiServicesExists: 'false'
+      bingExists: 'false'
+      bingCustomSearchExists: 'false'
       containerAppsEnvExists: 'false'
       containerAppAExists: 'false'
       containerAppWExists: 'false'
@@ -265,6 +279,7 @@ jobs:
       redisExists: 'false'
       postgreSQLExists: 'false'
       sqlServerExists: 'false'
+      elasticExists: 'false'
       logicAppsExists: 'false'
       eventHubsExists: 'false'
       functionAppExists: 'false'
@@ -416,7 +431,7 @@ jobs:
           echo "env.network_env=${{ env.network_env }}"
 
       - name: 00_Validate_Project_Subnet_Exists_(Networking-START)
-        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true' && env.deleteAllServicesForProject != 'true'
         shell: bash
         run: |
           set -e
@@ -554,7 +569,7 @@ jobs:
           }
 
       - name: 04_Create_Temporary_JSON_Parameter_Files
-        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true' && env.deleteAllServicesForProject != 'true'
         run: |
           $paramDir = Join-Path $Env:GITHUB_WORKSPACE 'aifactory/parameters'
           New-Item -ItemType Directory -Force -Path $paramDir | Out-Null
@@ -611,7 +626,7 @@ jobs:
           $override | ConvertTo-Json -Depth 5 | Out-File (Join-Path $paramDir '10-esml-globals-override.json') -Encoding utf8
 
       - name: 05_Calculate_Subnet_Allocations
-        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true' && env.deleteAllServicesForProject != 'true'
         working-directory: ${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts
         run: |
           sudo pwsh -Command '
@@ -703,7 +718,7 @@ jobs:
             check_subnet_exists "snt-prj${projectNumber}-dbxpub" "sntDatabricksPubExists"
 
       - name: 07_Deploy_Subnet_IfNotExists
-        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true' && env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -772,7 +787,7 @@ jobs:
           git submodule status
 
       - name: 10_Check_Subnet_Existence
-        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true' && env.deleteAllServicesForProject != 'true'
         run: |
           Write-Host "Subnet existence flags:"
           Write-Host "  sntGenaiExists=${{ env.sntGenaiExists }}"
@@ -897,8 +912,13 @@ jobs:
             suffixStandardNoDash="${suffixStandard#-}"
             suffixAppServicePlan="${suffixStandard}-plan"
             twoNumbers="${suffixStandard: -2}"
+            
+            # AI Hub - support both old (aif-hub-) and new (ai-hub-prj) naming
             aiHubName="aif-hub-${projectNumber}-${locationSuffix}-${envName}"
+            aiHubNameAlt="ai-hub-prj${projectNumber}"
+            # AI Project - support both old (aif-p-) and new (ai-prj) naming
             aifProjectName="aif-p-${projectNumber}-1-${locationSuffix}-${envName}"
+            aifProjectNameAlt="ai-prj${projectNumber}"
             aiFoundryV2Name="aif2"
             aiFoundryV2ProjectName="aif2-p${projectNumber}"
             botServiceName="bot-${projectNumber}-${locationSuffix}-${envName}"
@@ -931,8 +951,24 @@ jobs:
               echo "${key}=${val}" >> $GITHUB_ENV
               echo "Checking variable: ${key}, Value: ${val}"
             }
-            set_env "aiHubExists"            "$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aiHubName" "$suffixStandard")"
-            set_env "aifProjectExists"       "$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aifProjectName" "$suffixStandard")"
+            
+            # AI Hub: check both naming patterns
+            aiHubCheck1=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aiHubName" "$suffixStandard")
+            aiHubCheck2=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aiHubNameAlt" "$suffixStandard")
+            if [ "$aiHubCheck1" = "true" ] || [ "$aiHubCheck2" = "true" ]; then
+              set_env "aiHubExists" "true"
+            else
+              set_env "aiHubExists" "false"
+            fi
+            
+            # AI Project: check both naming patterns
+            aifProjectCheck1=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aifProjectName" "$suffixStandard")
+            aifProjectCheck2=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aifProjectNameAlt" "$suffixStandard")
+            if [ "$aifProjectCheck1" = "true" ] || [ "$aifProjectCheck2" = "true" ]; then
+              set_env "aifProjectExists" "true"
+            else
+              set_env "aifProjectExists" "false"
+            fi
             set_env "aiFoundryV2Exists"      "$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts" "$aiFoundryV2Name" "")"
             # Nested projects can't be enumerated with az resource list — use REST API instead
             _subId=$(az account show --query id -o tsv)
@@ -1588,10 +1624,63 @@ jobs:
               --parameters DEBUG_deployModel_text_embedding_3_large="${{ env.deployModel_text_embedding_3_large }}" \
               --parameters DEBUG_deployModel_text_embedding_3_small="${{ env.deployModel_text_embedding_3_small }}" \
               --parameters DEBUG_deployModel_gpt_4o_mini="${{ env.deployModel_gpt_4o_mini }}" \
+              --parameters policyExemptionAssignmentIds='${{ env.policyExemptionAssignmentIds }}' \
+              --parameters policyExemptionDefinitionReferenceIds='${{ env.policyExemptionDefinitionReferenceIds }}' \
               --parameters tags='${{ env.tags }}' \
               --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters diagnosticSettingLevel="${{ env.diagnosticSettingLevel }}" \
               --debug
+
+      - name: 06e-policy-exemptions-foundry-subnets
+        # Best-effort: creates policy exemptions on the VNet RG so DINE/auditIfNotExists policies
+        # cannot mutate the ACA subnet while Foundry Standard Agent performs network injection.
+        # Requires Microsoft.Authorization/policyExemptions/write on the VNet RG.
+        # To grant: az role assignment create --assignee <sp-oid> --role "Resource Policy Contributor"
+        #           --scope /subscriptions/<sub>/resourceGroups/<vnetRG>
+        if: |
+          env.deleteAllServicesForProject != 'true' &&
+          env.policyExemptionAssignmentIds != '[]' &&
+          env.policyExemptionAssignmentIds != ''
+        continue-on-error: true
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            ASSIGNMENT_IDS_JSON='${{ env.policyExemptionAssignmentIds }}'
+            SUBSCRIPTION_ID='${{ env.dev_test_prod_sub_id }}'
+            VNET_RG='${{ env.vnetResourceGroup_resolved }}'
+
+            if [ -z "$VNET_RG" ]; then
+              VNET_RG='${{ env.admin_aifactoryPrefixRG }}${{ env.vnetResourceGroupBase }}-${{ env.admin_locationSuffix }}-${{ env.dev_test_prod }}${{ env.admin_aifactorySuffixRG }}'
+            fi
+
+            echo "=== 06e Create Policy Exemptions ==="
+            echo "VNet RG: $VNET_RG"
+            echo "Assignment IDs JSON: $ASSIGNMENT_IDS_JSON"
+
+            az account set --subscription "$SUBSCRIPTION_ID"
+
+            ASSIGNMENT_IDS=$(python3 -c "import json,sys; ids=json.loads(sys.argv[1]); print('\n'.join(ids))" "$ASSIGNMENT_IDS_JSON" 2>/dev/null || echo "")
+
+            if [ -z "$ASSIGNMENT_IDS" ]; then
+              echo "No policy assignment IDs configured — skipping."
+              exit 0
+            fi
+
+            while IFS= read -r assignment_id; do
+              [ -z "$assignment_id" ] && continue
+              short_name=$(echo "$assignment_id" | awk -F'/' '{print $NF}')
+              exemption_name="foundry-aca-$(echo -n "${assignment_id}" | md5sum | cut -c1-16)"
+              echo "Creating exemption '$exemption_name' for '$short_name'..."
+              az rest --method PUT \
+                --url "https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${VNET_RG}/providers/Microsoft.Authorization/policyExemptions/${exemption_name}?api-version=2022-07-01-preview" \
+                --body "{\"properties\":{\"policyAssignmentId\":\"${assignment_id}\",\"exemptionCategory\":\"Waiver\",\"displayName\":\"Foundry ACA subnet exemption - ${short_name}\",\"description\":\"Foundry Standard Agent requires subnet immutability during network injection into snt-*-aca* subnets. DINE/auditIfNotExists remediation causes 409 conflicts on capability host provisioning.\"}}" \
+                --headers "Content-Type=application/json" \
+                && echo "Exemption created: $exemption_name" \
+                || echo "Failed: SP may lack Microsoft.Authorization/policyExemptions/write on $VNET_RG"
+            done <<< "$ASSIGNMENT_IDS"
+
+            echo "=== 06e Policy Exemptions complete ==="
 
       - name: 62-core-infrastructure
         if: env.deleteAllServicesForProject != 'true'

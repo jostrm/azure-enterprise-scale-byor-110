@@ -137,7 +137,7 @@ jobs:
       enableBingCustomSearch: ${{ vars.ENABLE_BING_CUSTOM_SEARCH || 'false' }}
       enableAIFoundryHub: ${{ vars.ENABLE_AI_FOUNDRY_HUB || 'false' }}
       addAIFoundryHub: ${{ vars.ADD_AI_FOUNDRY_HUB || 'false' }}
-      enableAIFoundry: ${{ vars.ENABLE_AI_FOUNDRY || 'false' }}
+      enableAIFoundry: ${{ vars.ENABLE_AI_FOUNDRY || 'true' }}
       updateAIFoundry: ${{ vars.UPDATE_AI_FOUNDRY || 'false' }}
       addAIFoundry: ${{ vars.ADD_AI_FOUNDRY || 'false' }}
       enableAFoundryCaphost: ${{ vars.ENABLE_FOUNDRY_CAPHOST || 'true' }}
@@ -145,12 +145,18 @@ jobs:
       foundryDeploymentType: ${{ vars.FOUNDRY_DEPLOYMENT_TYPE || '2' }}
       enableAIFactoryCreatedDefaultProjectForAIFv2: ${{ vars.ENABLE_AIFACTORY_CREATED_DEFAULT_PROJECT_FOR_AIFV2 || 'true' }}
       disableAgentNetworkInjection: ${{ vars.DISABLE_AGENT_NETWORK_INJECTION || 'false' }}
+      policyExemptionAssignmentIds: ${{ vars.POLICY_EXEMPTION_ASSIGNMENT_IDS || '[]' }}
+      policyExemptionDefinitionReferenceIds: ${{ vars.POLICY_EXEMPTION_DEFINITION_REFERENCE_IDS || '[]' }}
       enableDatafactory: ${{ vars.ENABLE_DATAFACTORY || 'false' }}
       enableAzureMachineLearning: ${{ vars.ENABLE_AZURE_MACHINE_LEARNING || 'false' }}
       addAzureMachineLearning: ${{ vars.ADD_AZURE_MACHINE_LEARNING || 'false' }}
       enableDatafactoryCommon: ${{ vars.ENABLE_DATAFACTORY_COMMON || 'false' }}
       enableDatabricks: ${{ vars.ENABLE_DATABRICKS || 'false' }}
       enableAksForAzureML: ${{ vars.ENABLE_AKS_FOR_AZURE_ML || 'true' }}
+      enableAKS: ${{ vars.ENABLE_AKS || 'false' }}
+      aksSkuName: ${{ vars.AKS_SKU_NAME || 'Base' }}
+      aksSkuTier: ${{ vars.AKS_SKU_TIER || 'Standard' }}
+      aksEnablePrivateCluster: ${{ vars.AKS_ENABLE_PRIVATE_CLUSTER || 'true' }}
       aksOutboundType: ${{ vars.AKS_OUTBOUND_TYPE || 'loadBalancer' }}
       aksPrivateDNSZone: ${{ vars.AKS_PRIVATE_DNS_ZONE || 'system' }}
       aksAzureFirewallPrivateIp: ${{ vars.AKS_AZURE_FIREWALL_PRIVATE_IP || '' }}
@@ -173,6 +179,14 @@ jobs:
       enablePostgreSQL: ${{ vars.ENABLE_POSTGRESQL || 'false' }}
       enableRedisCache: ${{ vars.ENABLE_REDIS_CACHE || 'false' }}
       enableSQLDatabase: ${{ vars.ENABLE_SQL_DATABASE || 'false' }}
+      enableElasticsearch: ${{ vars.ENABLE_ELASTICSEARCH || 'false' }}
+      elasticType: ${{ vars.ELASTIC_TYPE || 'ElasticCloud' }}
+      elasticEmail: ${{ vars.ELASTIC_EMAIL || 'admin@example.com' }}
+      elasticFirstName: ${{ vars.ELASTIC_FIRST_NAME || 'AI' }}
+      elasticLastName: ${{ vars.ELASTIC_LAST_NAME || 'Factory' }}
+      elasticCompanyName: ${{ vars.ELASTIC_COMPANY_NAME || 'Organization' }}
+      elasticDeploymentSize: ${{ vars.ELASTIC_DEPLOYMENT_SIZE || 'small' }}
+      elasticSku: ${{ vars.ELASTIC_SKU || 'ess-consumption-2024_Monthly' }}
       enablePublicGenAIAccess: ${{ vars.ENABLE_PUBLIC_GENAI_ACCESS || 'false' }}
       allowPublicAccessWhenBehindVnet: ${{ vars.ALLOW_PUBLIC_ACCESS_WHEN_BEHIND_VNET || 'false' }}
       enablePublicAccessWithPerimeter: ${{ vars.ENABLE_PUBLIC_ACCESS_WITH_PERIMETER || 'false' }}
@@ -180,13 +194,15 @@ jobs:
       updateRbac: ${{ vars.UPDATE_RBAC || 'false' }}
       disableContributorAccessForUsers: ${{ vars.DISABLE_CONTRIBUTOR_ACCESS_FOR_USERS || 'false' }}
       disableRBACAdminOnRGForUsers: ${{ vars.DISABLE_RBAC_ADMIN_ON_RG_FOR_USERS || 'false' }}
+      disableSubnetJoinAction: ${{ vars.DISABLE_SUBNET_JOIN_ACTION || 'false' }}
       BYO_CONTRIBUTOR_ROLE_ID: ${{ vars.BYO_CONTRIBUTOR_ROLE_ID || 'b24988ac-6180-42a0-ab88-20f7382dd24c' }}
       enableDefenderforAISubLevel: ${{ vars.ENABLE_DEFENDER_FOR_AI_SUB_LEVEL || 'false' }}
       enableDefenderforAIResourceLevel: ${{ vars.ENABLE_DEFENDER_FOR_AI_RESOURCE_LEVEL || 'false' }}
 
       # Complete mode vs Incremental mode
       enableDeleteForDisabledResources: ${{ vars.ENABLE_DELETE_FOR_DISABLED_RESOURCES || 'true' }}
-      deleteAllServicesForProject: ${{ vars.DELETE_ALL_SERVICES_FOR_PROJECT || 'true' }}
+      deleteAllServicesForProject: ${{ vars.DELETE_ALL_SERVICES_FOR_PROJECT || 'false' }}
+      deleteAllForProject: ${{ vars.DELETE_ALL_FOR_PROJECT || 'false' }}
 
       # DNS zone existence flags (for parity with ADO debug params)
       zoneAzurecontainerappsExists: ${{ vars.ZONE_AZURECONTAINERAPPS_EXISTS || 'false' }}
@@ -213,8 +229,8 @@ jobs:
       deployModel_gpt_4o: ${{ vars.DEPLOY_MODEL_GPT_4O || 'true' }}
       deployModel_gpt_4: ${{ vars.DEPLOY_MODEL_GPT_4 || 'false' }}
       default_gpt_4o_version: ${{ vars.DEFAULT_GPT_4O_VERSION || '2024-11-20' }}
-      deployModel_gpt_54_mini: ${{ vars.DEPLOY_MODEL_GPT_54_MINI || 'false' }}
-      default_gpt_54_mini_version: ${{ vars.DEFAULT_GPT_54_MINI_VERSION || '2026-03-17' }}
+      deployModel_gpt_4o_mini: ${{ vars.DEPLOY_MODEL_GPT_4O_MINI || 'false' }}
+      default_gpt_4o_mini_version: ${{ vars.DEFAULT_GPT_4O_MINI_VERSION || '2024-07-18' }}
       default_gpt_capacity: ${{ vars.DEFAULT_GPT_CAPACITY || '40' }}
       default_model_sku: ${{ vars.DEFAULT_MODEL_SKU || 'Standard' }}
 
@@ -253,6 +269,8 @@ jobs:
       openaiExists: 'false'
       aiSearchExists: 'false'
       aiServicesExists: 'false'
+      bingExists: 'false'
+      bingCustomSearchExists: 'false'
       containerAppsEnvExists: 'false'
       containerAppAExists: 'false'
       containerAppWExists: 'false'
@@ -265,6 +283,7 @@ jobs:
       redisExists: 'false'
       postgreSQLExists: 'false'
       sqlServerExists: 'false'
+      elasticExists: 'false'
       logicAppsExists: 'false'
       eventHubsExists: 'false'
       functionAppExists: 'false'
@@ -407,51 +426,16 @@ jobs:
 
       - name: 00_Print_Info
         run: |
-          Write-Host " - FOUNDRY"
-          Write-Host "enableAIFoundry is: ${{ env.enableAIFoundry }}"
-          Write-Host "disableAgentNetworkInjection is: ${{ env.disableAgentNetworkInjection }}"
-          Write-Host "updateAIFoundry is: ${{ env.updateAIFoundry }}"
-          Write-Host "addAIFoundry is: ${{ env.addAIFoundry }}"
-          Write-Host "enableAFoundryCaphost is: ${{ env.enableAFoundryCaphost }}"
-          Write-Host "cleanFoundryCaphost is: ${{ env.cleanFoundryCaphost }}"
-          Write-Host "foundryDeploymentType is: ${{ env.foundryDeploymentType }}"
-          Write-Host " - AI FACTORY: NAMING"
-          Write-Host "project_number_000 (001) is: ${{ env.project_number_000 }}"
-          Write-Host "projectPrefix (esml-) is: ${{ env.projectPrefix }}"
-          Write-Host "projectSuffix (-rg) is: ${{ env.projectSuffix }}"
-          Write-Host "dev_test_prod is: ${{ env.dev_test_prod }}"
-          Write-Host "AI Factory version is: ${{ env.aifactory_version_major }}.${{ env.aifactory_version_minor }}"
-          Write-Host "AI Factory scale set (-001) is: ${{ env.admin_aifactorySuffixRG }}"
-          Write-Host "Resource group suffix (-001) is: ${{ env.admin_commonResourceSuffix }}"
-          Write-Host "admin_projectType (all) is: ${{ env.admin_projectType }}"
-          Write-Host " - NETWORKING:"
-          Write-Host "runNetworkingVar (true) is: ${{ env.runNetworkingVar }}"
-          Write-Host "allowPublicAccessWhenBehindVnet is: ${{ env.allowPublicAccessWhenBehindVnet }}"
-          Write-Host "enablePublicGenAIAccess is: ${{ env.enablePublicGenAIAccess }}"
-          Write-Host "enablePublicAccessWithPerimeter is: ${{ env.enablePublicAccessWithPerimeter }}"
-          Write-Host "privDnsResourceGroup_param is: ${{ env.privDnsResourceGroup_param }}"
-          Write-Host "centralDnsZoneByPolicyInHub (false) is: ${{ env.centralDnsZoneByPolicyInHub }}"
-          Write-Host "vnetResourceGroup_param is: ${{ env.vnetResourceGroup_param }}"
-          Write-Host "vnetNameFull_param is: ${{ env.vnetNameFull_param }}"
-          Write-Host "commonResourceGroup_param is: ${{ env.commonResourceGroup_param }}"
-          Write-Host "vnetNameBase is: ${{ env.vnetNameBase }}"
-          Write-Host "BYO_subnets (false) is: ${{ env.BYO_subnets }}"
-          Write-Host "vnetResourceGroupBase (esml-common) is: ${{ env.vnetResourceGroupBase }}"
-          Write-Host "common_subnet_name is: ${{ env.common_subnet_name }}"
-          Write-Host "network_env is: ${{ env.network_env }}"
-          Write-Host " - ENCRYPTION:"
-          Write-Host "CMK (false): ${{ env.cmk }}"
-          Write-Host "cmkKeyName (aifactory-cmk-key): ${{ env.cmkKeyName }}"
-          Write-Host "useCommonACR (true): ${{ env.useCommonACR }}"
-          Write-Host " - FOUNDRY (repeat for caphost):"
-          Write-Host "Foundry:enableAFoundryCaphost (false) is: ${{ env.enableAFoundryCaphost }}"
-          Write-Host "Foundry:disableAgentNetworkInjection (true) is: ${{ env.disableAgentNetworkInjection }}"
-          Write-Host " - PERMISSION and OTHER:"
-          Write-Host "use_ad_groups (true) is: ${{ env.use_ad_groups }}"
-          Write-Host "deployment_random_value is: ${{ env.deployment_random_value }}"
+          echo "env.dev_test_prod=${{ env.dev_test_prod }}"
+          echo "env.project_number_000=${{ env.project_number_000 }}"
+          echo "env.runNetworkingVar=${{ env.runNetworkingVar }}"
+          echo "env.BYO_subnets=${{ env.BYO_subnets }}"
+          echo "env.admin_projectType=${{ env.admin_projectType }}"
+          echo "env.useCommonACR=${{ env.useCommonACR }}"
+          echo "env.network_env=${{ env.network_env }}"
 
       - name: 00_Validate_Project_Subnet_Exists_(Networking-START)
-        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true' && env.deleteAllServicesForProject != 'true'
         shell: bash
         run: |
           set -e
@@ -589,7 +573,7 @@ jobs:
           }
 
       - name: 04_Create_Temporary_JSON_Parameter_Files
-        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true' && env.deleteAllServicesForProject != 'true'
         run: |
           $paramDir = Join-Path $Env:GITHUB_WORKSPACE 'aifactory/parameters'
           New-Item -ItemType Directory -Force -Path $paramDir | Out-Null
@@ -646,7 +630,7 @@ jobs:
           $override | ConvertTo-Json -Depth 5 | Out-File (Join-Path $paramDir '10-esml-globals-override.json') -Encoding utf8
 
       - name: 05_Calculate_Subnet_Allocations
-        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true' && env.deleteAllServicesForProject != 'true'
         working-directory: ${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts
         run: |
           sudo pwsh -Command '
@@ -738,7 +722,7 @@ jobs:
             check_subnet_exists "snt-prj${projectNumber}-dbxpub" "sntDatabricksPubExists"
 
       - name: 07_Deploy_Subnet_IfNotExists
-        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true' && env.deleteAllServicesForProject != 'true'
         uses: azure/cli@v2
         with:
           azcliversion: latest
@@ -807,7 +791,7 @@ jobs:
           git submodule status
 
       - name: 10_Check_Subnet_Existence
-        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true'
+        if: env.runNetworkingVar != 'false' && env.BYO_subnets != 'true' && env.deleteAllServicesForProject != 'true'
         run: |
           Write-Host "Subnet existence flags:"
           Write-Host "  sntGenaiExists=${{ env.sntGenaiExists }}"
@@ -932,8 +916,13 @@ jobs:
             suffixStandardNoDash="${suffixStandard#-}"
             suffixAppServicePlan="${suffixStandard}-plan"
             twoNumbers="${suffixStandard: -2}"
+            
+            # AI Hub - support both old (aif-hub-) and new (ai-hub-prj) naming
             aiHubName="aif-hub-${projectNumber}-${locationSuffix}-${envName}"
+            aiHubNameAlt="ai-hub-prj${projectNumber}"
+            # AI Project - support both old (aif-p-) and new (ai-prj) naming
             aifProjectName="aif-p-${projectNumber}-1-${locationSuffix}-${envName}"
+            aifProjectNameAlt="ai-prj${projectNumber}"
             aiFoundryV2Name="aif2"
             aiFoundryV2ProjectName="aif2-p${projectNumber}"
             botServiceName="bot-${projectNumber}-${locationSuffix}-${envName}"
@@ -966,8 +955,24 @@ jobs:
               echo "${key}=${val}" >> $GITHUB_ENV
               echo "Checking variable: ${key}, Value: ${val}"
             }
-            set_env "aiHubExists"            "$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aiHubName" "$suffixStandard")"
-            set_env "aifProjectExists"       "$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aifProjectName" "$suffixStandard")"
+            
+            # AI Hub: check both naming patterns
+            aiHubCheck1=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aiHubName" "$suffixStandard")
+            aiHubCheck2=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aiHubNameAlt" "$suffixStandard")
+            if [ "$aiHubCheck1" = "true" ] || [ "$aiHubCheck2" = "true" ]; then
+              set_env "aiHubExists" "true"
+            else
+              set_env "aiHubExists" "false"
+            fi
+            
+            # AI Project: check both naming patterns
+            aifProjectCheck1=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aifProjectName" "$suffixStandard")
+            aifProjectCheck2=$(resource_exists_fuzzy "$targetRG" "Microsoft.MachineLearningServices/workspaces" "$aifProjectNameAlt" "$suffixStandard")
+            if [ "$aifProjectCheck1" = "true" ] || [ "$aifProjectCheck2" = "true" ]; then
+              set_env "aifProjectExists" "true"
+            else
+              set_env "aifProjectExists" "false"
+            fi
             set_env "aiFoundryV2Exists"      "$(resource_exists_fuzzy "$targetRG" "Microsoft.CognitiveServices/accounts" "$aiFoundryV2Name" "")"
             # Nested projects can't be enumerated with az resource list — use REST API instead
             _subId=$(az account show --query id -o tsv)
@@ -1622,11 +1627,64 @@ jobs:
               --parameters DEBUG_deployModel_text_embedding_ada_002="${{ env.deployModel_text_embedding_ada_002 }}" \
               --parameters DEBUG_deployModel_text_embedding_3_large="${{ env.deployModel_text_embedding_3_large }}" \
               --parameters DEBUG_deployModel_text_embedding_3_small="${{ env.deployModel_text_embedding_3_small }}" \
-              --parameters DEBUG_deployModel_gpt_4o_mini="${{ env.deployModel_gpt_54_mini }}" \
+              --parameters DEBUG_deployModel_gpt_4o_mini="${{ env.deployModel_gpt_4o_mini }}" \
+              --parameters policyExemptionAssignmentIds='${{ env.policyExemptionAssignmentIds }}' \
+              --parameters policyExemptionDefinitionReferenceIds='${{ env.policyExemptionDefinitionReferenceIds }}' \
               --parameters tags='${{ env.tags }}' \
               --parameters tagsProject='${{ env.tagsProject }}' \
               --parameters diagnosticSettingLevel="${{ env.diagnosticSettingLevel }}" \
               --debug
+
+      - name: 06e-policy-exemptions-foundry-subnets
+        # Best-effort: creates policy exemptions on the VNet RG so DINE/auditIfNotExists policies
+        # cannot mutate the ACA subnet while Foundry Standard Agent performs network injection.
+        # Requires Microsoft.Authorization/policyExemptions/write on the VNet RG.
+        # To grant: az role assignment create --assignee <sp-oid> --role "Resource Policy Contributor"
+        #           --scope /subscriptions/<sub>/resourceGroups/<vnetRG>
+        if: |
+          env.deleteAllServicesForProject != 'true' &&
+          env.policyExemptionAssignmentIds != '[]' &&
+          env.policyExemptionAssignmentIds != ''
+        continue-on-error: true
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            ASSIGNMENT_IDS_JSON='${{ env.policyExemptionAssignmentIds }}'
+            SUBSCRIPTION_ID='${{ env.dev_test_prod_sub_id }}'
+            VNET_RG='${{ env.vnetResourceGroup_resolved }}'
+
+            if [ -z "$VNET_RG" ]; then
+              VNET_RG='${{ env.admin_aifactoryPrefixRG }}${{ env.vnetResourceGroupBase }}-${{ env.admin_locationSuffix }}-${{ env.dev_test_prod }}${{ env.admin_aifactorySuffixRG }}'
+            fi
+
+            echo "=== 06e Create Policy Exemptions ==="
+            echo "VNet RG: $VNET_RG"
+            echo "Assignment IDs JSON: $ASSIGNMENT_IDS_JSON"
+
+            az account set --subscription "$SUBSCRIPTION_ID"
+
+            ASSIGNMENT_IDS=$(python3 -c "import json,sys; ids=json.loads(sys.argv[1]); print('\n'.join(ids))" "$ASSIGNMENT_IDS_JSON" 2>/dev/null || echo "")
+
+            if [ -z "$ASSIGNMENT_IDS" ]; then
+              echo "No policy assignment IDs configured — skipping."
+              exit 0
+            fi
+
+            while IFS= read -r assignment_id; do
+              [ -z "$assignment_id" ] && continue
+              short_name=$(echo "$assignment_id" | awk -F'/' '{print $NF}')
+              exemption_name="foundry-aca-$(echo -n "${assignment_id}" | md5sum | cut -c1-16)"
+              echo "Creating exemption '$exemption_name' for '$short_name'..."
+              az rest --method PUT \
+                --url "https://management.azure.com/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${VNET_RG}/providers/Microsoft.Authorization/policyExemptions/${exemption_name}?api-version=2022-07-01-preview" \
+                --body "{\"properties\":{\"policyAssignmentId\":\"${assignment_id}\",\"exemptionCategory\":\"Waiver\",\"displayName\":\"Foundry ACA subnet exemption - ${short_name}\",\"description\":\"Foundry Standard Agent requires subnet immutability during network injection into snt-*-aca* subnets. DINE/auditIfNotExists remediation causes 409 conflicts on capability host provisioning.\"}}" \
+                --headers "Content-Type=application/json" \
+                && echo "Exemption created: $exemption_name" \
+                || echo "Failed: SP may lack Microsoft.Authorization/policyExemptions/write on $VNET_RG"
+            done <<< "$ASSIGNMENT_IDS"
+
+            echo "=== 06e Policy Exemptions complete ==="
 
       - name: 62-core-infrastructure
         if: env.deleteAllServicesForProject != 'true'
@@ -1756,9 +1814,7 @@ jobs:
               --parameters deployModel_text_embedding_3_large="${{ env.deployModel_text_embedding_3_large }}" \
               --parameters deployModel_text_embedding_3_small="${{ env.deployModel_text_embedding_3_small }}" \
               --parameters deployModel_text_embedding_ada_002="${{ env.deployModel_text_embedding_ada_002 }}" \
-              --parameters deployModel_gpt_54_mini="${{ env.deployModel_gpt_54_mini }}" \
-              --parameters default_gpt_54_mini_version="${{ env.default_gpt_54_mini_version }}" \
-              --parameters deployModel_gpt_X="${{ env.deployModel_gpt_X }}" \
+              --parameters deployModel_gpt_4o_mini="${{ env.deployModel_gpt_4o_mini }}" \
               --parameters default_gpt_capacity="${{ env.default_gpt_capacity }}" \
               --parameters default_model_sku="${{ env.default_model_sku }}" \
               --parameters modelGPTXName="${{ env.modelGPTXName }}" \
@@ -1832,6 +1888,15 @@ jobs:
               --parameters enablePostgreSQL="${{ env.enablePostgreSQL }}" \
               --parameters enableRedisCache="${{ env.enableRedisCache }}" \
               --parameters enableSQLDatabase="${{ env.enableSQLDatabase }}" \
+              --parameters enableElasticsearch="${{ env.enableElasticsearch }}" \
+              --parameters elasticExists="${{ env.elasticExists }}" \
+              --parameters elasticType="${{ env.elasticType }}" \
+              --parameters elasticEmail="${{ env.elasticEmail }}" \
+              --parameters elasticFirstName="${{ env.elasticFirstName }}" \
+              --parameters elasticLastName="${{ env.elasticLastName }}" \
+              --parameters elasticCompanyName="${{ env.elasticCompanyName }}" \
+              --parameters elasticDeploymentSize="${{ env.elasticDeploymentSize }}" \
+              --parameters elasticSku="${{ env.elasticSku }}" \
               --parameters useAdGroups="${{ env.use_groups }}" \
               --parameters tags='${{ env.tags }}' \
               --parameters tagsProject='${{ env.tagsProject }}' \
@@ -1973,7 +2038,7 @@ jobs:
               --parameters deployModel_text_embedding_3_large="${{ env.deployModel_text_embedding_3_large }}" \
               --parameters deployModel_text_embedding_3_small="${{ env.deployModel_text_embedding_3_small }}" \
               --parameters default_embedding_capacity="${{ env.default_embedding_capacity }}" \
-              --parameters deployModel_gpt_54_mini="${{ env.deployModel_gpt_54_mini }}" \
+              --parameters deployModel_gpt_4o_mini="${{ env.deployModel_gpt_4o_mini }}" \
               --parameters default_gpt_capacity="${{ env.default_gpt_capacity }}" \
               --parameters default_model_sku="${{ env.default_model_sku }}" \
               --parameters deployModel_gpt_4o="${{ env.deployModel_gpt_4o }}" \
@@ -2206,6 +2271,7 @@ jobs:
               --parameters enableAIDocIntelligence="${{ env.enableAIDocIntelligence }}" \
               --parameters disableContributorAccessForUsers="${{ env.disableContributorAccessForUsers }}" \
               --parameters disableRBACAdminOnRGForUsers="${{ env.disableRBACAdminOnRGForUsers }}" \
+              --parameters disableSubnetJoinAction="${{ env.disableSubnetJoinAction }}" \
               --parameters enableCosmosDB="${{ env.enableCosmosDB }}" \
               --parameters enablePostgreSQL="${{ env.enablePostgreSQL }}" \
               --parameters enableRedisCache="${{ env.enableRedisCache }}" \
@@ -2271,8 +2337,8 @@ jobs:
               --parameters default_gpt_capacity="${{ env.default_gpt_capacity }}" \
               --parameters deployModel_gpt_4o="${{ env.deployModel_gpt_4o }}" \
               --parameters default_gpt_4o_version="${{ env.default_gpt_4o_version }}" \
-              --parameters deployModel_gpt_54_mini="${{ env.deployModel_gpt_54_mini }}" \
-              --parameters default_gpt_54_mini_version="${{ env.default_gpt_54_mini_version }}" \
+              --parameters deployModel_gpt_4o_mini="${{ env.deployModel_gpt_4o_mini }}" \
+              --parameters default_gpt_4o_mini_version="${{ env.default_gpt_4o_mini_version }}" \
               --parameters default_model_sku="${{ env.default_model_sku }}" \
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
               --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
@@ -2428,7 +2494,6 @@ jobs:
               --parameters resourceSuffix="${{ env.admin_prjResourceSuffix }}" \
               --parameters enableAIFoundry="${{ env.enableAIFoundry }}" \
               --parameters enableAISearch="${{ env.enableAISearch }}" \
-              --parameters enableAISearchSharedPrivateLink="${{ env.enableAISearchSharedPrivateLink }}" \
               --parameters enableCosmosDB="${{ env.enableCosmosDB }}" \
               --parameters deployModel_gpt_X="${{ env.deployModel_gpt_X }}" \
               --parameters modelGPTXName="${{ env.modelGPTXName }}" \
@@ -2442,8 +2507,8 @@ jobs:
               --parameters default_gpt_capacity="${{ env.default_gpt_capacity }}" \
               --parameters deployModel_gpt_4o="${{ env.deployModel_gpt_4o }}" \
               --parameters default_gpt_4o_version="${{ env.default_gpt_4o_version }}" \
-              --parameters deployModel_gpt_54_mini="${{ env.deployModel_gpt_54_mini }}" \
-              --parameters default_gpt_54_mini_version="${{ env.default_gpt_54_mini_version }}" \
+              --parameters deployModel_gpt_4o_mini="${{ env.deployModel_gpt_4o_mini }}" \
+              --parameters default_gpt_4o_mini_version="${{ env.default_gpt_4o_mini_version }}" \
               --parameters default_model_sku="${{ env.default_model_sku }}" \
               --parameters enablePublicAccessWithPerimeter="${{ env.enablePublicAccessWithPerimeter }}" \
               --parameters enablePublicGenAIAccess="${{ env.enablePublicGenAIAccess }}" \
