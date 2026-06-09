@@ -1,11 +1,12 @@
-trigger:
-  schedules:
-  - cron: "0 2 * * *"  # Daily at 2 AM UTC
-    displayName: Daily Cross-Charging Report
-    branches:
-      include:
-      - main
-    always: true
+trigger: none
+
+schedules:
+- cron: "0 2 * * *"  # Daily at 2 AM UTC
+  displayName: Daily Cross-Charging Report
+  branches:
+    include:
+    - main
+  always: true
 
 variables:
   - template: ../variables/variables.yaml

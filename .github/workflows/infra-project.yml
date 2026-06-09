@@ -21,10 +21,13 @@ jobs:
       dev_test_prod_sub_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       # Single source of truth for environment (matches ADO): dev_test_prod drives everything
       # network_env uses per-environment repo vars when provided, falls back to shared NETWORK_ENV or AZURE_ENV_NAME
-      network_env: ${{ github.event.inputs.environment == 'dev' && (vars.DEV_NETWORK_ENV || vars.NETWORK_ENV || 'dev')
-        || github.event.inputs.environment == 'stage' && (vars.STAGE_NETWORK_ENV || vars.NETWORK_ENV || 'test')
-        || github.event.inputs.environment == 'prod' && (vars.PROD_NETWORK_ENV || vars.NETWORK_ENV || 'prod')
-        || vars.NETWORK_ENV || vars.AZURE_ENV_NAME || '' }}
+      network_env: >-
+        ${{
+          (github.event.inputs.environment == 'dev'   && (vars.DEV_NETWORK_ENV   || vars.NETWORK_ENV || 'dev'))
+          || (github.event.inputs.environment == 'stage' && (vars.STAGE_NETWORK_ENV || vars.NETWORK_ENV || 'test'))
+          || (github.event.inputs.environment == 'prod'  && (vars.PROD_NETWORK_ENV  || vars.NETWORK_ENV || 'prod'))
+          || vars.NETWORK_ENV || vars.AZURE_ENV_NAME || ''
+        }}
 
       admin_location: ${{ vars.AIFACTORY_LOCATION }}
       admin_locationSuffix: ${{ vars.AIFACTORY_LOCATION_SHORT }}
@@ -307,6 +310,19 @@ jobs:
 
       projectPrefix: ${{ vars.PROJECT_PREFIX || 'esml-' }}
       projectSuffix: ${{ vars.PROJECT_SUFFIX || '-rg' }}
+
+      # Placeholders for env vars populated at runtime via $GITHUB_ENV.
+      # Declared here so YAML/linters can resolve `${{ env.* }}` references in later steps.
+      # (aifactory_salt / aifactory_salt_random reuse the AIFACTORY_SALT* keys declared above —
+      #  GitHub Actions env keys are case-insensitive, so no duplicate placeholder is needed.)
+      vnetNameFull_resolved: 'unset'
+      vnetResourceGroup_resolved: 'unset'
+      runner_ip: 'unset'
+      common_sp_appid_value: 'unset'
+      common_sp_secret_value: 'unset'
+      project_sp_oid_value: 'unset'
+      debug_disable_100_rbac_security: 'false'
+      debug_disable_69_aifoundry_2025: 'false'
 
     steps:
       - name: 00_Azure_Login
@@ -2104,7 +2120,7 @@ jobs:
               --parameters projectPrefix="${{ env.projectPrefix }}" \
               --parameters projectSuffix="${{ env.projectSuffix }}" \
               --parameters aks_dev_sku_override="${{ env.admin_aks_gpu_sku_dev_override }}" \
-              --parameters aks_test_prod_sku_override="${{ env.admin_aks_gpu_sku_test_prod_override }}" \
+              --parameters aks_test_prod_sku_override="${{ env.admin_aks_gpu_sku_testProd_override }}" \
               --parameters aks_version_override="${{ env.admin_aks_version_override }}" \
               --parameters aks_dev_nodes_override="${{ env.admin_aks_nodes_dev_override }}" \
               --parameters aks_test_prod_nodes_override="${{ env.admin_aks_nodes_testProd_override }}" \
@@ -2566,9 +2582,6 @@ jobs:
         if: success() && env.enableAIFoundry == 'true' && env.enableCosmosDB == 'true' && env.deleteAllServicesForProject != 'true'
         continue-on-error: true
         uses: azure/cli@v2
-        env:
-          aifactory_salt: ${{ env.AIFACTORY_SALT }}
-          aifactory_salt_random: ${{ env.aifactory_salt_random }}
         with:
           azcliversion: latest
           inlineScript: |
