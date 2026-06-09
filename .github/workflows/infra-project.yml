@@ -1645,7 +1645,6 @@ jobs:
               --parameters DEBUG_deployModel_text_embedding_ada_002="${{ env.deployModel_text_embedding_ada_002 }}" \
               --parameters DEBUG_deployModel_text_embedding_3_large="${{ env.deployModel_text_embedding_3_large }}" \
               --parameters DEBUG_deployModel_text_embedding_3_small="${{ env.deployModel_text_embedding_3_small }}" \
-              --parameters DEBUG_deployModel_gpt_54_mini="${{ env.deployModel_gpt_54_mini }}" \
               --parameters policyExemptionAssignmentIds='${{ env.policyExemptionAssignmentIds }}' \
               --parameters policyExemptionDefinitionReferenceIds='${{ env.policyExemptionDefinitionReferenceIds }}' \
               --parameters tags='${{ env.tags }}' \
