@@ -1,4 +1,4 @@
-name: infra-project
+﻿name: infra-project
 
 on:
   workflow_dispatch:
@@ -1904,7 +1904,7 @@ jobs:
 
             while IFS= read -r assignment_id; do
               [ -z "$assignment_id" ] && continue
-              short_name=$(echo "$assignment_id" | awk -F'/' '{print $NF}')
+              short_name="${assignment_id##*/}"
               exemption_name="foundry-aca-$(echo -n "${assignment_id}" | md5sum | cut -c1-16)"
               echo "Creating exemption '$exemption_name' for '$short_name'..."
               az rest --method PUT \
@@ -2725,10 +2725,8 @@ jobs:
               exit 1
             fi
 
-            sub_id=$(echo "$aca2_subnet_id" | awk -F'/' '{print $3}')
-            sub_rg=$(echo "$aca2_subnet_id" | awk -F'/' '{print $5}')
-            vnet_name=$(echo "$aca2_subnet_id" | awk -F'/' '{print $9}')
-            subnet_name=$(echo "$aca2_subnet_id" | awk -F'/' '{print $11}')
+            # Parse subnet id with bash built-ins (awk is not present in the azure/cli container).
+            IFS='/' read -r _ _ sub_id _ sub_rg _ _ _ vnet_name _ subnet_name <<< "$aca2_subnet_id"
 
             echo "   subscription: $sub_id"
             echo "   resourceGroup: $sub_rg"
@@ -2966,9 +2964,8 @@ jobs:
             fi
 
             # Parse subnet id → subscription / rg / vnet, then build the parent VNet resource id.
-            sub_id=$(echo "$aca2_subnet_id" | awk -F'/' '{print $3}')
-            sub_rg=$(echo "$aca2_subnet_id"  | awk -F'/' '{print $5}')
-            vnet_name=$(echo "$aca2_subnet_id" | awk -F'/' '{print $9}')
+            # Use bash built-ins (awk is not present in the azure/cli container).
+            IFS='/' read -r _ _ sub_id _ sub_rg _ _ _ vnet_name _ _ <<< "$aca2_subnet_id"
             vnet_id="/subscriptions/${sub_id}/resourceGroups/${sub_rg}/providers/Microsoft.Network/virtualNetworks/${vnet_name}"
             echo "Agent subnet : $aca2_subnet_id"
             echo "Parent VNet  : $vnet_id"
@@ -3282,8 +3279,10 @@ jobs:
               if [ -n "$uniqueInAIFenv" ] && [ -n "$saltRandom10" ]; then
                 cleanRandomValue="${saltRandom10//-/}"
                 cleanRandomValue="${cleanRandomValue//_/}"
-                cleanRandomValue=$(echo "$cleanRandomValue" | awk '{print tolower($0)}')
-                foundry_project_name=$(echo "aif2-p${projectNumber}${uniqueInAIFenv}${cleanRandomValue}" | awk '{print tolower($0)}' | cut -c1-12)
+                cleanRandomValue="${cleanRandomValue,,}"
+                foundry_project_name="aif2-p${projectNumber}${uniqueInAIFenv}${cleanRandomValue}"
+                foundry_project_name="${foundry_project_name,,}"
+                foundry_project_name="${foundry_project_name:0:12}"
                 echo "Fallback: trying project name='$foundry_project_name'"
                 fallback_json=$(az rest --method GET \
                   --url "https://management.azure.com${foundry_account_id}/projects/${foundry_project_name}?api-version=2025-04-01-preview" \
