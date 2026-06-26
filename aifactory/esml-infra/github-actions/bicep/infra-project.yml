@@ -50,6 +50,7 @@ jobs:
       # Project settings
       project_number_000: ${{ vars.PROJECT_NUMBER }}
       project_IP_whitelist: ${{ secrets.PROJECT_MEMBERS_IP_ADDRESS }}
+      acr_IP_whitelist: ${{ vars.ACR_IP_WHITELIST || '' }}
       technical_admins_ad_object_id: ${{ secrets.PROJECT_MEMBERS }}
       technical_admins_email: ${{ vars.PROJECT_MEMBERS_EMAILS }}
       project_service_principal_AppID_seeding_kv_name: ${{ vars.PROJECT_SERVICE_PRINCIPAL_KV_S_NAME_APPID }}
@@ -353,6 +354,31 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+
+      # ---------------------------------------------------------------------
+      # PREFLIGHT (early, fail-fast): validate AI Search/model quota,
+      # Elasticsearch policy/RP blocks, resource-provider registration and
+      # region support for THIS subscription BEFORE any service is deployed.
+      # A non-zero exit aborts the workflow with a clear reason (::error::).
+      # Set repo var PREFLIGHT_SKIP=true to bypass, PREFLIGHT_STRICT=true to
+      # also fail on warnings.
+      # ---------------------------------------------------------------------
+      - name: 00_Preflight_Quota_Policy_Checks
+        if: ${{ vars.PREFLIGHT_SKIP != 'true' }}
+        shell: bash
+        env:
+          PREFLIGHT_SKIP: ${{ vars.PREFLIGHT_SKIP || 'false' }}
+          admin_aiSearchTier: ${{ vars.ADMIN_AISEARCH_TIER || 'standard' }}
+        run: |
+          set -uo pipefail
+          PF="azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts/preflight.sh"
+          chmod +x "$PF" 2>/dev/null || true
+          STRICT_FLAG=""
+          if [ "${{ vars.PREFLIGHT_STRICT || 'false' }}" = "true" ]; then STRICT_FLAG="--strict"; fi
+          bash "$PF" $STRICT_FLAG \
+            --environment "${{ env.dev_test_prod }}" \
+            --subscription "${{ env.dev_test_prod_sub_id }}" \
+            --location "${{ env.admin_location }}"
 
       - name: 00_Validate_Required_Configuration
         run: |
