@@ -2699,6 +2699,66 @@ jobs:
               --parameters existingAcrPushSPPrincipals="${{ env.existingAcrPushSPPrincipals }}" \
               --parameters disableSubnetJoinAction="${{ env.disableSubnetJoinAction }}"
 
+      - name: 69-Purge-Soft-Deleted-Foundry-Before-Create
+        # A soft-deleted Cognitive Services (AI Foundry) account blocks recreation with the same name:
+        #   FlagMustBeSetForRestore / 'has been soft-deleted ... purge it first'.
+        # 16_Check_Resource_Existence only detects LIVE resources, so aiFoundryV2Exists is 'false' for a
+        # soft-deleted account and the gated 18_Purge_Soft_Deleted step never runs. This always-on step
+        # purges any soft-deleted Foundry/Cognitive-Services account in the project RG right before 69a
+        # creates a fresh account. Runs only when we are about to CREATE (no live account exists).
+        if: |
+          env.enableAIFoundry == 'true' && env.deleteAllServicesForProject != 'true' &&
+          env.debug_disable_69_aifoundry_2025 != 'true' && env.pre_foundry_gate_passed == 'true' &&
+          env.foundry_1st_option_succeeded != 'true' && env.aiFoundryV2Exists != 'true' &&
+          (env.foundryDeploymentType == '2' || env.foundryDeploymentType == '3')
+        continue-on-error: true
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            #!/bin/bash
+            set -uo pipefail
+            az account set --subscription "${{ env.dev_test_prod_sub_id }}"
+
+            commonRGNamePrefix="${{ env.admin_aifactoryPrefixRG }}"
+            projectNumber="${{ env.project_number_000 }}"
+            projectName="prj${projectNumber}"
+            locationSuffix="${{ env.admin_locationSuffix }}"
+            envName="${{ env.dev_test_prod }}"
+            aifactorySuffixRG="${{ env.admin_aifactorySuffixRG }}"
+            projectPrefix="${{ env.projectPrefix }}"
+            projectSuffix="${{ env.projectSuffix }}"
+            location="${{ env.admin_location }}"
+            projectNameReplaced="${projectName/prj/project}"
+            targetRG="${commonRGNamePrefix}${projectPrefix}${projectNameReplaced}-${locationSuffix}-${envName}${aifactorySuffixRG}${projectSuffix}"
+
+            echo "=== Purge soft-deleted AI Foundry / Cognitive Services accounts before create ==="
+            echo "Target RG: $targetRG   Location: $location"
+
+            # list-deleted is location/subscription-wide; filter to the project RG.
+            deletedAccounts=$(az cognitiveservices account list-deleted \
+              --query "[?resourceGroup=='${targetRG}'].name" -o tsv 2>/dev/null || echo "")
+
+            if [ -z "$deletedAccounts" ]; then
+              echo "ℹ️  No soft-deleted Cognitive Services accounts found in $targetRG. Nothing to purge."
+              exit 0
+            fi
+
+            while IFS= read -r accountName; do
+              [ -z "$accountName" ] && continue
+              echo "🗑️  Purging soft-deleted Cognitive Services account: $accountName"
+              if az cognitiveservices account purge \
+                --location "$location" \
+                --resource-group "$targetRG" \
+                --name "$accountName"; then
+                echo "✅ Purged: $accountName"
+              else
+                echo "::warning::Failed to purge soft-deleted account '$accountName' — 69a may fail with FlagMustBeSetForRestore."
+              fi
+            done <<< "$deletedAccounts"
+
+            echo "=== 69-Purge-Soft-Deleted-Foundry-Before-Create complete ==="
+
       - name: 69a-Validate-Subnet-For-NetworkInjection
         # Validates the AGENT subnet (aca2SubnetId) actually written into dynamicNetworkParams.json
         # — the exact value Bicep injects into networkInjections[].subnetArmId. A mismatch causes the
