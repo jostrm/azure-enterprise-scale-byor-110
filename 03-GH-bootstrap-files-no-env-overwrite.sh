@@ -22,6 +22,7 @@ mkdir -p "$SCRIPT_DIR/aifactory/esml-infra/github-actions/bicep/"
 # .ENV file & 03a-GH-create-or-update-github-variables.sh
 cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/.env.template" "$SCRIPT_DIR/.env.template"
 cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/03a-GH-create-or-update-github-variables.sh" "$SCRIPT_DIR/10-GH-create-or-update-github-variables.sh"
+cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/variables.json" "$SCRIPT_DIR/aifactory/variables-template.json"
 
 # YAML - Common -> aifactory + .gihub/workflows
 cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/infra-common.yml" "$SCRIPT_DIR/aifactory/esml-infra/github-actions/bicep/infra-common.yml"
@@ -30,13 +31,15 @@ cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy
 # YAML - infra-project.yml -> aifactory + .github/workflows
 cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/infra-project.yml" "$SCRIPT_DIR/aifactory/esml-infra/github-actions/bicep/infra-project.yml"
 cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/infra-project.yml" "$SCRIPT_DIR/.github/workflows/infra-project.yml"
+cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/infra-project-phase.yml" "$SCRIPT_DIR/aifactory/esml-infra/github-actions/bicep/infra-project-phase.yml"
+cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/infra-project-phase.yml" "$SCRIPT_DIR/.github/workflows/infra-project-phase.yml"
 
-# YAML - infra-add-project-member.yml -> aifactory + .gihub/workflows
-#cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/infra-add-project-member.yml" "$SCRIPT_DIR/aifactory/esml-infra/github-actions/bicep/infra-add-project-member.yml"
-#cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/infra-add-project-member.yml" "$SCRIPT_DIR/.github/workflows/infra-add-project-member.yml"
-
-# YAML - infra-add-core-member.yml -> aifactory + .gihub/workflows
-#cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/infra-add-core-member.yml" "$SCRIPT_DIR/aifactory/esml-infra/github-actions/bicep/infra-add-core-member.yml"
-#cp "$SCRIPT_DIR/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/copy_to_local_settings/github-actions/infra-add-core-member.yml" "$SCRIPT_DIR/.github/workflows/infra-add-core-member.yml"
+# Automation (core-team runbooks, FinOps showback/token reports) -> aifactory/automation
+mkdir -p "$SCRIPT_DIR/aifactory/automation/"
+cp -r "$SCRIPT_DIR/aifactory-templates/automation/." "$SCRIPT_DIR/aifactory/automation/"
 
 echo -e "${GREEN}Success! ${NC}"
+
+echo -e "${YELLOW}Prompt to use with Github copilot to compare .env with .env.template and update it:${NC}"
+echo ""
+echo "Compare the .env file at root, with the newer .env.template. Copy all values from .env into the new template .env.template. If some variables are similar but not excat, try to map these simce they may be renamed. There may possible be more variables in .env.template. After this , then rename .env to .env.bak and env.template to .env"
