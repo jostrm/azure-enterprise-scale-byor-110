@@ -54,6 +54,29 @@ while true; do
   esac
 done
 
+skip_github_variables_choice="${AIFACTORY_SKIP_GITHUB_VARIABLES_UPDATE:-}"
+while true; do
+  if [[ -z "$skip_github_variables_choice" && -t 0 ]]; then
+    read -r -p "Do you want to skip updating GitHub variables from .env? [y/N]: " skip_github_variables_choice
+  fi
+  case "${skip_github_variables_choice,,}" in
+    y|yes)
+      skip_github_variables_update=true
+      echo "GitHub variable update skipped."
+      break
+      ;;
+    ""|n|no)
+      skip_github_variables_update=false
+      echo "GitHub variables will be updated from .env."
+      break
+      ;;
+    *)
+      echo "Please enter 'y' for Yes or 'n' for No. Press Enter for No." >&2
+      skip_github_variables_choice=""
+      ;;
+  esac
+done
+
 for command in git gh; do
   if ! command -v "$command" >/dev/null 2>&1; then
     echo "ERROR: Required command '$command' is not available." >&2
@@ -141,6 +164,7 @@ if not template_path.is_file():
 
 active = json.loads(active_path.read_text(encoding="utf-8-sig"), object_pairs_hook=OrderedDict)
 template = json.loads(template_path.read_text(encoding="utf-8-sig"), object_pairs_hook=OrderedDict)
+removed_keys = {"useAdminVMBuildAgent"}
 
 def merge(template_value, active_value):
     if isinstance(template_value, dict) and isinstance(active_value, dict):
@@ -148,7 +172,7 @@ def merge(template_value, active_value):
         for key, value in template_value.items():
             merged[key] = merge(value, active_value[key]) if key in active_value else value
         for key, value in active_value.items():
-            if key not in merged:
+            if key not in merged and key not in removed_keys:
                 merged[key] = value
         return merged
     return active_value
@@ -262,7 +286,9 @@ if [[ -f .env ]]; then
 fi
 mv -f .env.template .env
 
-printf 'd\n\n\nn\n' | bash "10-GH-create-or-update-github-variables.sh"
+if [[ "$skip_github_variables_update" == "false" ]]; then
+  printf 'd\n\n\nn\n' | bash "10-GH-create-or-update-github-variables.sh"
+fi
 
 github_repo=$("${PYTHON[@]}" - <<'PY'
 import re
