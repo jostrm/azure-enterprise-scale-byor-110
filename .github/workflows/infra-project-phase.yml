@@ -22,6 +22,10 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   deploy-project:
     name: Project ${{ inputs.phase }}
@@ -31,7 +35,9 @@ jobs:
       run:
         shell: pwsh
     env:
+      AIFACTORY_REPORT_JOB: deploy-project-${{ inputs.phase }}
       AIFACTORY_CONFIG_JSON: ${{ secrets.AIFACTORY_CONFIG_JSON }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       dev_test_prod: ${{ vars.AZURE_ENV_NAME }}
       dev_test_prod_sub_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       # Single source of truth for environment (matches ADO): dev_test_prod drives everything
@@ -407,6 +413,11 @@ jobs:
       debug_disable_10_aifactory_dashboards: ${{ vars.DEBUG_DISABLE_10_AIFACTORY_DASHBOARDS || 'true' }}
 
     steps:
+      - name: 00_Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
       - name: Validate self-hosted runner
         if: ${{ inputs.use_self_hosted == 'true' }}
         shell: pwsh
@@ -425,15 +436,19 @@ jobs:
           $azureConfig = Join-Path $HOME '.azure'
           New-Item -ItemType Directory -Force -Path $azureConfig | Out-Null
 
-      - name: 00_Azure_Login
+      - name: 00_Azure_Login_OIDC
+        if: ${{ env.AZURE_CLIENT_ID != '' }}
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: 00_Azure_Login_Service_Principal
+        if: ${{ env.AZURE_CLIENT_ID == '' }}
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: 00_Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: 00_Materialize_Protected_JSON_Config
         if: ${{ inputs.config_file != '' && env.AIFACTORY_CONFIG_JSON != '' }}
@@ -471,6 +486,7 @@ jobs:
         shell: bash
         env:
           PREFLIGHT_SKIP: ${{ vars.PREFLIGHT_SKIP || 'false' }}
+          PREFLIGHT_REPORT_DIR: ${{ runner.temp }}/aifactory-region-reports/${{ github.run_id }}-${{ github.run_attempt }}/deploy-project-${{ inputs.phase }}
           admin_aiSearchTier: ${{ vars.ADMIN_AISEARCH_TIER || 'standard' }}
         run: |
           set -uo pipefail
@@ -1842,82 +1858,24 @@ jobs:
 
             echo "✅ ${wait_minutes}-minute wait complete! Subnet should now be fully released and ready for reuse."
 
-      - name: Check and Delete Orphan Role Assignments
-        # Removes orphan role assignments (principalName==null) at the common + project RG scopes,
-        # left behind when principals (e.g. purged identities) were deleted. Idempotent best-effort.
+      - name: Check and Delete Current Project Orphan Role Assignments
+        # Shared cleanup proves project ownership and principal deletion before touching either RG.
         if: inputs.phase == 'infra' && (success() && env.deleteAllServicesForProject != 'true')
         shell: bash
+        env:
+          ORPHAN_SUBSCRIPTION_ID: ${{ env.dev_test_prod_sub_id }}
+          ORPHAN_RG_PREFIX: ${{ env.admin_aifactoryPrefixRG }}
+          ORPHAN_PROJECT_NUMBER: ${{ env.project_number_000 }}
+          ORPHAN_LOCATION_SUFFIX: ${{ env.admin_locationSuffix }}
+          ORPHAN_ENV: ${{ env.dev_test_prod }}
+          ORPHAN_RG_SUFFIX: ${{ env.admin_aifactorySuffixRG }}
+          ORPHAN_PROJECT_PREFIX: ${{ env.projectPrefix }}
+          ORPHAN_PROJECT_SUFFIX: ${{ env.projectSuffix }}
+          ORPHAN_COMMON_RG: ${{ env.commonResourceGroup_param }}
+          ORPHAN_COMMON_NAME: ${{ env.vnetResourceGroupBase }}
         run: |
-            set -e
-
-            echo "Checking for orphan role assignments..."
-            az account set --subscription "${{ env.dev_test_prod_sub_id }}"
-
-            commonRGNamePrefix="${{ env.admin_aifactoryPrefixRG }}"
-            projectNumber="${{ env.project_number_000 }}"
-            projectName="prj${projectNumber}"
-            locationSuffix="${{ env.admin_locationSuffix }}"
-            envName="${{ env.dev_test_prod }}"
-            aifactorySuffixRG="${{ env.admin_aifactorySuffixRG }}"
-            vnetResourceGroupBase="${{ env.vnetResourceGroupBase }}"
-            projectPrefix="${{ env.projectPrefix }}"
-            projectSuffix="${{ env.projectSuffix }}"
-
-            commonResourceGroup="${{ env.commonResourceGroup_param }}"
-            if [ -z "$commonResourceGroup" ]; then
-              commonResourceGroup="${commonRGNamePrefix}${vnetResourceGroupBase}-${locationSuffix}-${envName}${aifactorySuffixRG}"
-            fi
-            echo "commonResourceGroup resolved to: $commonResourceGroup"
-
-            projectNameReplaced="${projectName/prj/project}"
-            projectResourceGroup="${commonRGNamePrefix}${projectPrefix}${projectNameReplaced}-${locationSuffix}-${envName}${aifactorySuffixRG}${projectSuffix}"
-            echo "projectResourceGroup resolved to: $projectResourceGroup"
-
-            check_and_delete_orphans() {
-              local resourceGroup=$1
-              local rgScope="/subscriptions/${{ env.dev_test_prod_sub_id }}/resourceGroups/${resourceGroup}"
-
-              echo "Checking resource group: $resourceGroup"
-              echo "Scope: $rgScope"
-
-              if ! az group show --name "$resourceGroup" &>/dev/null; then
-                echo "Resource group $resourceGroup does not exist, skipping..."
-                return 0
-              fi
-
-              orphanCount=$(az role assignment list --scope "$rgScope" --query "[?principalName==null]" -o tsv | wc -l)
-
-              if [ "$orphanCount" -gt 0 ]; then
-                echo "Found $orphanCount orphan role assignment(s) in $resourceGroup"
-                orphanIds=$(az role assignment list --scope "$rgScope" --query "[?principalName==null].id" -o tsv)
-                while IFS= read -r assignmentId; do
-                  if [ -n "$assignmentId" ]; then
-                    echo "Attempting to delete orphan role assignment: $assignmentId"
-                    if az role assignment delete --ids "$assignmentId" 2>&1; then
-                      echo "Successfully deleted orphan role assignment: $assignmentId"
-                    else
-                      echo "Warning: Failed to delete orphan role assignment: $assignmentId (may require additional permissions)"
-                    fi
-                  fi
-                done <<< "$orphanIds"
-              else
-                echo "No orphan role assignments found in $resourceGroup"
-              fi
-            }
-
-            if [ -n "$commonResourceGroup" ]; then
-              echo "=== Checking Common Resource Group ==="
-              check_and_delete_orphans "$commonResourceGroup" || echo "Warning: Error processing common resource group, continuing..."
-            fi
-
-            if [ -n "$projectResourceGroup" ]; then
-              echo ""
-              echo "=== Checking Project Resource Group ==="
-              check_and_delete_orphans "$projectResourceGroup" || echo "Warning: Error processing project resource group, continuing..."
-            fi
-
-            echo ""
-            echo "Orphan role assignment check completed"
+            set -euo pipefail
+            python azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts/cleanup-project-orphan-roles.py
 
       # === Deploy sequences ===
 
@@ -2855,8 +2813,8 @@ jobs:
               --parameters addAIFoundryHub="${{ env.addAIFoundryHub }}" \
               --parameters addAzureMachineLearning="${{ env.addAzureMachineLearning }}" \
               --parameters addBastionHost="${{ env.addBastionHost }}" \
-              --parameters bastionResourceGroup="${{ env.bastion_subscription_resource_group }}" \
-              --parameters bastionName="${{ env.bastion_custom_name }}" \
+              --parameters bastionResourceGroup="${bastion_subscription_resource_group:-}" \
+              --parameters bastionName="${bastion_custom_name:-}" \
               --parameters inputKeyvault="${{ env.admin_bicep_kv_fw }}" \
               --parameters inputKeyvaultResourcegroup="${{ env.admin_bicep_kv_fw_rg }}" \
               --parameters inputKeyvaultSubscription="${{ env.admin_bicep_input_keyvault_subscription }}" \
@@ -4140,6 +4098,35 @@ jobs:
               --parameters tags='${{ env.tags }}' \
               --parameters tagsProject='${{ env.tagsProject }}'
 
+      - name: 10b-reconcile-aifactory-dashboard
+        if: inputs.phase == 'infra' && env.deleteAllServicesForProject != 'true' && success()
+        continue-on-error: true
+        shell: bash
+        env:
+          DASHBOARD_CURRENT_SUBSCRIPTION_ID: ${{ env.dev_test_prod_sub_id }}
+          DASHBOARD_CURRENT_ENV: ${{ env.dev_test_prod }}
+          DASHBOARD_PROJECT_NUMBER: ${{ env.project_number_000 }}
+          DASHBOARD_LOCATION: ${{ env.admin_location }}
+          DASHBOARD_LOCATION_SUFFIX: ${{ env.admin_locationSuffix }}
+          DASHBOARD_RG_PREFIX: ${{ env.admin_aifactoryPrefixRG }}
+          DASHBOARD_RG_SUFFIX: ${{ env.admin_aifactorySuffixRG }}
+          DASHBOARD_PROJECT_PREFIX: ${{ env.projectPrefix }}
+          DASHBOARD_PROJECT_SUFFIX: ${{ env.projectSuffix }}
+          DASHBOARD_COMMON_NAME: ${{ env.vnetResourceGroupBase }}
+          DASHBOARD_COMMON_RG: ${{ env.commonResourceGroup_param }}
+          DASHBOARD_DEV_SUBSCRIPTION_ID: ${{ vars.DEV_SUBSCRIPTION_ID }}
+          DASHBOARD_STAGE_SUBSCRIPTION_ID: ${{ vars.STAGE_SUBSCRIPTION_ID }}
+          DASHBOARD_PROD_SUBSCRIPTION_ID: ${{ vars.PROD_SUBSCRIPTION_ID }}
+          DASHBOARD_CENTRAL_DNS: ${{ env.centralDnsZoneByPolicyInHub }}
+          DASHBOARD_PRIVATE_DNS_SUBSCRIPTION_ID: ${{ env.privDnsSubscription_param }}
+          DASHBOARD_PRIVATE_DNS_RESOURCE_GROUP: ${{ env.privDnsResourceGroup_param }}
+          DASHBOARD_VNET_SUBSCRIPTION_ID: ${{ env.dev_test_prod_sub_id }}
+          DASHBOARD_VNET_RESOURCE_GROUP: ${{ env.vnetResourceGroup_resolved }}
+          DASHBOARD_CONFIG_FILE: ${{ inputs.config_file }}
+          DASHBOARD_TEMPLATE_FILE: ${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/modules/aifactory-dash-01.bicep
+        run: |
+            python3 "${{ github.workspace }}/azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts/deploy-aifactory-dashboard.py"
+
       - name: Remove runner IP from seeding Key Vault
         if: always() && env.disable_whitelisting_for_build_agents != 'true'
         shell: bash
@@ -4149,3 +4136,25 @@ jobs:
               --resource-group "${{ env.admin_bicep_kv_fw_rg }}" \
               --name "${{ env.admin_bicep_kv_fw }}" \
               --ip-address "${{ env.runner_ip }}" || true
+
+      - name: Report final pipeline job result (offline)
+        if: always()
+        shell: bash
+        env:
+          AIFACTORY_REPORT_JOB_STATUS: ${{ job.status }}
+          AIFACTORY_REPORT_DIR: ${{ runner.temp }}/aifactory-region-reports/${{ github.run_id }}-${{ github.run_attempt }}/deploy-project-${{ inputs.phase }}
+        run: |
+          helper="azure-enterprise-scale-ml/environment_setup/aifactory/bicep/scripts/write-pipeline-region-report.sh"
+          if [ -f "$helper" ]; then bash "$helper"; else
+            echo "WARNING: AI Factory region report helper is unavailable (checkout may have failed)."
+          fi
+
+      - name: Publish AI Factory region reports
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: aifactory-region-reports-deploy-project-${{ inputs.phase }}-${{ inputs.environment }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/aifactory-region-reports/${{ github.run_id }}-${{ github.run_attempt }}/deploy-project-${{ inputs.phase }}/*.json
+          if-no-files-found: warn
+          retention-days: 14
