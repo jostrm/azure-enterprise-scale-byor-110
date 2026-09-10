@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# AIFACTORY_PROJECT_DEPLOYMENT_CONTRACT=1
+# AIFACTORY_VERSION_CONTRACT=1
 
 set -euo pipefail
 
@@ -14,7 +16,6 @@ fi
 source "$AIF_UI_LIBRARY"
 readonly REPO_ROOT="${AIFACTORY_REPO_ROOT:-$SCRIPT_DIR}"
 readonly SUBMODULE_PATH="azure-enterprise-scale-ml"
-readonly SUBMODULE_BRANCH="release/v1.24"
 readonly BRANCH="${ADO_BRANCH:-main}"
 readonly PIPELINE_NAME="${ADO_PIPELINE_NAME:-infra-project-genai}"
 readonly PIPELINE_YAML_PATH="aifactory/esml-infra/azure-devops/bicep/yaml/esml-infra-project/infra-project-genai.yaml"
@@ -29,6 +30,14 @@ auth_method="${ADO_AUTH_METHOD:-aad}"
 
 cd "$REPO_ROOT"
 
+reviewed_project=false
+if [[ -n "${AIFACTORY_TARGET_ENVIRONMENT:-}${AIFACTORY_PROJECT_NUMBER:-}${AIFACTORY_PROJECT_CONFIG:-}" ]]; then
+  reviewed_project=true
+  export AIFACTORY_USE_JSON_OVERRIDE=yes
+  export AIFACTORY_REPO_ROOT="$REPO_ROOT"
+  umask 077
+fi
+
 if [[ "${AIFACTORY_LAUNCHER_STABLE:-}" != "1" ]]; then
   state_dir="$HOME/.aifactory-update-state/ado-$$"
   stable_launcher="$state_dir/ADO-update-aifactory-and-run-project.sh"
@@ -36,6 +45,19 @@ if [[ "${AIFACTORY_LAUNCHER_STABLE:-}" != "1" ]]; then
   mkdir -p "$state_dir/ui"
   cp "$AIF_UI_LIBRARY" "$state_dir/ui/terminal.sh"
   cp "${BASH_SOURCE[0]}" "$stable_launcher"
+  version_dir="$SCRIPT_DIR/lib"
+  [[ -f "$version_dir/release_version.py" ]] || version_dir="$REPO_ROOT/azure-enterprise-scale-ml/bootstrap/lib"
+  mkdir -p "$state_dir/lib"
+  cp "$version_dir/release_version.py" "$version_dir/release_version.sh" "$state_dir/lib/"
+  if [[ "$reviewed_project" == "true" ]]; then
+    deployment_helper="$SCRIPT_DIR/lib/project_deployment.py"
+    if [[ ! -f "$deployment_helper" ]]; then
+      deployment_helper="$REPO_ROOT/azure-enterprise-scale-ml/bootstrap/lib/project_deployment.py"
+    fi
+    [[ -f "$deployment_helper" ]] || { aif_error "Install lib/project_deployment.py for reviewed project deployment."; exit 1; }
+    mkdir -p "$state_dir/lib"
+    cp "$deployment_helper" "$state_dir/lib/project_deployment.py"
+  fi
   chmod +x "$stable_launcher"
   export AIFACTORY_LAUNCHER_STABLE=1
   export AIFACTORY_LAUNCHER_STATE_DIR="$state_dir"
@@ -45,7 +67,53 @@ fi
 
 state_dir="${AIFACTORY_LAUNCHER_STATE_DIR:?Stable launcher state directory is missing.}"
 trap 'rm -rf -- "$state_dir"' EXIT
-aif_banner "AZURE DEVOPS / UPDATE + RUN" "Preserve configuration. Refresh templates. Deploy with intent."
+project_only=false
+resume_after_bootstrap=false
+while (( $# )); do
+  argument="$1"
+  shift
+  case "$argument" in
+    --aifactory-version)
+      [[ $# -gt 0 && -n "$1" && -z "${AIF_VERSION_ARGUMENT:-}" ]] || { aif_error "One --aifactory-version value is required."; exit 1; }
+      AIF_VERSION_ARGUMENT="$1"; shift
+      ;;
+    --project-only)
+      project_only=true
+      ;;
+    --resume-after-bootstrap)
+      resume_after_bootstrap=true
+      ;;
+    --help|-h)
+      printf 'Usage: %s [--project-only] [--aifactory-version 124|125|1.100|main]\n' "$(basename "$0")"
+      printf '  --project-only  Skip all AI Factory and template updates; trigger the project pipeline only.\n'
+      exit 0
+      ;;
+    *)
+      aif_error "Unsupported argument: $argument. Use --project-only or --help." >&2
+      exit 1
+      ;;
+  esac
+done
+case "${AIFACTORY_PROJECT_ONLY:-false}" in
+  true|TRUE|1|yes|YES)
+    project_only=true
+    ;;
+  false|FALSE|0|no|NO|"")
+    ;;
+  *)
+    aif_error "AIFACTORY_PROJECT_ONLY must be true or false." >&2
+    exit 1
+    ;;
+esac
+
+source "$SCRIPT_DIR/lib/release_version.sh"
+aif_version_prepare "$REPO_ROOT" "$project_only"
+
+if [[ "$project_only" == "true" ]]; then
+  aif_banner "AZURE DEVOPS / PROJECT ONLY" "Skip AI Factory updates. Trigger the existing project pipeline."
+else
+  aif_banner "AZURE DEVOPS / UPDATE + RUN" "Preserve configuration. Refresh templates. Deploy with intent."
+fi
 aif_value "Repository" "$REPO_ROOT"
 aif_value "Branch" "$BRANCH"
 aif_section "01 / Configuration"
@@ -114,6 +182,22 @@ elif command -v python3 >/dev/null 2>&1 && python3 --version >/dev/null 2>&1; th
 else
   aif_error "A working Python 3 interpreter is required." >&2
   exit 1
+fi
+
+if [[ "$reviewed_project" == "true" ]]; then
+  export AIFACTORY_PROJECT_ONLY="$project_only"
+  helper_path="$SCRIPT_DIR/lib/project_deployment.py"
+  helper_state_dir="$state_dir"
+  if command -v cygpath >/dev/null 2>&1; then
+    helper_path="$(cygpath -m "$helper_path")"
+    helper_state_dir="$(cygpath -m "$helper_state_dir")"
+    export AIFACTORY_REPO_ROOT="$(cygpath -m "$REPO_ROOT")"
+    if [[ -n "${AIFACTORY_PROJECT_CONFIG:-}" ]]; then
+      export AIFACTORY_PROJECT_CONFIG="$(cygpath -m "$AIFACTORY_PROJECT_CONFIG")"
+    fi
+  fi
+  "${PYTHON[@]}" "$helper_path" --route ado --state-dir "$helper_state_dir"
+  exit "$?"
 fi
 
 ado_repository_name="${ADO_REPOSITORY_NAME:-}"
@@ -584,21 +668,21 @@ if [[ "$use_json_override" == "true" && ! -f "$CONFIG_FILE" ]]; then
   aif_error "Active JSON configuration file is missing: $CONFIG_FILE" >&2
   exit 1
 fi
-cp "$VARIABLES_FILE" "$state_dir/variables.yaml"
-cp "$VARIABLES_FILE" "$backup_dir/variables.yaml"
-if [[ "$use_json_override" == "true" ]]; then
-  cp "$CONFIG_FILE" "$state_dir/variables.json"
-  cp "$CONFIG_FILE" "$backup_dir/variables.json"
-fi
-
-resume_after_bootstrap=false
-aif_section "03 / Protect local work and refresh templates"
-if [[ "${1:-}" == "--resume-after-bootstrap" ]]; then
-  resume_after_bootstrap=true
-fi
 stash_created=false
 submodule_stash_created=false
-if [[ "$resume_after_bootstrap" == "false" ]]; then
+if [[ "$project_only" == "true" ]]; then
+  aif_section "03 / Project-only mode"
+  aif_info "Skipping submodule pull, template refresh, configuration merge, pipeline preview, and Git commit/push."
+else
+  cp "$VARIABLES_FILE" "$state_dir/variables.yaml"
+  cp "$VARIABLES_FILE" "$backup_dir/variables.yaml"
+  if [[ "$use_json_override" == "true" ]]; then
+    cp "$CONFIG_FILE" "$state_dir/variables.json"
+    cp "$CONFIG_FILE" "$backup_dir/variables.json"
+  fi
+
+  aif_section "03 / Protect local work and refresh templates"
+  if [[ "$resume_after_bootstrap" == "false" ]]; then
   if [[ -d "$SUBMODULE_PATH/.git" || -f "$SUBMODULE_PATH/.git" ]] &&
      [[ -n "$(git -C "$SUBMODULE_PATH" status --porcelain)" ]]; then
     git -C "$SUBMODULE_PATH" stash push \
@@ -618,24 +702,28 @@ if [[ "$resume_after_bootstrap" == "false" ]]; then
 
   git checkout "$BRANCH"
   git pull --ff-only origin "$BRANCH"
-  git submodule update --init --recursive --remote
-  git submodule foreach "git checkout '$SUBMODULE_BRANCH' && git pull --ff-only origin '$SUBMODULE_BRANCH'"
+  git submodule update --init --recursive
+  git -C "$SUBMODULE_PATH" fetch origin "$AIF_SUBMODULE_REF"
+  git -C "$SUBMODULE_PATH" checkout --detach "$AIF_SUBMODULE_REF"
+  aif_version_save "$REPO_ROOT"
 
   printf 'a\n' | bash "$SUBMODULE_PATH/00-start.sh"
   bash "01-aif-copy-aifactory-templates.sh"
-  bash "03-ADO-YAML-bootstrap-files-no-var-overwrite.sh"
+    bash "03-ADO-YAML-bootstrap-files-no-var-overwrite.sh"
+  fi
 fi
 
-if [[ ! -f "$VARIABLES_TEMPLATE_FILE" ]]; then
+if [[ "$project_only" == "false" && ! -f "$VARIABLES_TEMPLATE_FILE" ]]; then
   aif_error "Azure DevOps variables template was not generated: $VARIABLES_TEMPLATE_FILE" >&2
   exit 1
 fi
-if [[ "$use_json_override" == "true" && ! -f "$CONFIG_TEMPLATE_FILE" ]]; then
+if [[ "$project_only" == "false" && "$use_json_override" == "true" && ! -f "$CONFIG_TEMPLATE_FILE" ]]; then
   aif_error "JSON configuration template was not generated: $CONFIG_TEMPLATE_FILE" >&2
   exit 1
 fi
 
-aif_section "04 / Configuration changes"
+if [[ "$project_only" == "false" ]]; then
+  aif_section "04 / Configuration changes"
 "${PYTHON[@]}" - \
   "$state_dir/variables.yaml" \
   "$VARIABLES_TEMPLATE_FILE" \
@@ -864,7 +952,55 @@ PY
 fi
 
 rm -f "$VARIABLES_TEMPLATE_FILE" "$CONFIG_TEMPLATE_FILE"
+fi
 
+validate_pipeline_preview() {
+  local request_file="$1"
+  local response_file="$2"
+  ado_request \
+    POST \
+    "$ado_api_base/pipelines/$pipeline_id/runs?api-version=7.1" \
+    "$request_file" \
+    > "$response_file"
+  "${PYTHON[@]}" - "$response_file" <<'PY'
+import json
+import sys
+
+response = json.loads(open(sys.argv[1], encoding="utf-8-sig").read())
+if not response.get("finalYaml"):
+    raise SystemExit("Azure DevOps preview did not return compiled YAML.")
+PY
+}
+
+if [[ "$project_only" == "false" ]]; then
+remote_templates_available=true
+while IFS= read -r template_path; do
+  if ! git cat-file -e "origin/$BRANCH:$template_path" 2>/dev/null; then
+    remote_templates_available=false
+    aif_info "Deferring full preview until publish because this template is new: $template_path"
+  fi
+done < <("${PYTHON[@]}" - "$PIPELINE_YAML_PATH" <<'PY'
+import posixpath
+import re
+import sys
+from pathlib import PurePosixPath
+
+pipeline = PurePosixPath(sys.argv[1].replace("\\", "/"))
+pattern = re.compile(r"^\s*-\s+template:\s*['\"]?([^'\"\s]+)")
+seen = set()
+for line in open(sys.argv[1], encoding="utf-8-sig"):
+    match = pattern.match(line)
+    if not match or "@" in match.group(1) or "${{" in match.group(1):
+        continue
+    path = posixpath.normpath(str(pipeline.parent / match.group(1)))
+    if path not in seen:
+        seen.add(path)
+        print(path)
+PY
+)
+
+aif_section "05 / Validate pipeline"
+if [[ "$remote_templates_available" == "true" ]]; then
 "${PYTHON[@]}" - "$state_dir/preview-request.json" "$BRANCH" "$CONFIG_FILE" "$RUNNER_SELECTION" "$use_json_override" "$PIPELINE_YAML_PATH" <<'PY'
 import json
 import sys
@@ -893,22 +1029,12 @@ request = {
 Path(sys.argv[1]).write_text(json.dumps(request, indent=2) + "\n", encoding="utf-8")
 PY
 
-aif_section "05 / Validate pipeline"
 aif_info "Compiling the pipeline before commit and push..."
-ado_request \
-  POST \
-  "$ado_api_base/pipelines/$pipeline_id/runs?api-version=7.1" \
-  "$state_dir/preview-request.json" \
-  > "$state_dir/preview-response.json"
-"${PYTHON[@]}" - "$state_dir/preview-response.json" <<'PY'
-import json
-import sys
-
-response = json.loads(open(sys.argv[1], encoding="utf-8-sig").read())
-if not response.get("finalYaml"):
-    raise SystemExit("Azure DevOps preview did not return compiled YAML.")
-PY
+validate_pipeline_preview "$state_dir/preview-request.json" "$state_dir/preview-response.json"
 aif_success "Azure DevOps pipeline validation succeeded."
+else
+  aif_warn "Pre-publish ADO compilation cannot resolve new template files. The exact pushed branch will be compiled before deployment."
+fi
 
 cp "$state_dir/ADO-update-aifactory-and-run-project.sh" "$REPO_ROOT/ADO-update-aifactory-and-run-project.sh"
 chmod +x "$REPO_ROOT/ADO-update-aifactory-and-run-project.sh"
@@ -927,6 +1053,39 @@ if ! git diff --cached --quiet; then
   git push origin "$BRANCH"
 else
   aif_info "No tracked template changes required a commit."
+fi
+
+"${PYTHON[@]}" - "$state_dir/published-preview-request.json" "$BRANCH" "$CONFIG_FILE" "$RUNNER_SELECTION" "$use_json_override" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+request = {
+    "previewRun": True,
+    "resources": {
+        "repositories": {
+            "self": {
+                "refName": f"refs/heads/{sys.argv[2]}",
+            }
+        }
+    },
+    "templateParameters": {
+        "configFile": sys.argv[3],
+        "runnerSelection": sys.argv[4],
+        "useJsonConfigOverride": sys.argv[5] == "true",
+    },
+    "stagesToSkip": [
+        "Stage_GenAI_Project",
+        "Prod_GenAI_Project",
+    ],
+}
+Path(sys.argv[1]).write_text(json.dumps(request, indent=2) + "\n", encoding="utf-8")
+PY
+
+aif_section "06b / Validate published pipeline"
+aif_info "Compiling the exact pushed branch before deployment..."
+validate_pipeline_preview "$state_dir/published-preview-request.json" "$state_dir/published-preview-response.json"
+aif_success "Published Azure DevOps pipeline validation succeeded."
 fi
 
 "${PYTHON[@]}" - "$state_dir/run-request.json" "$BRANCH" "$CONFIG_FILE" "$RUNNER_SELECTION" "$use_json_override" <<'PY'
